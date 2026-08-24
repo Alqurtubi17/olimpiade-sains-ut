@@ -44,7 +44,8 @@ export function incrementWajibQnum(match, teamId) {
   if (!match) return match;
   const tId = teamId || "A";
   const current = getWajibQnum(match, tId);
-  const nextQ = current + 1;
+  const maxQ = match.wajib_max_qnum || 5;
+  const nextQ = Math.min(current + 1, maxQ);
   const key = `wajib_${tId.toLowerCase()}_qnum`;
   const wajib_qnums = { ...(match.wajib_qnums || {}), [tId]: nextQ };
   return {

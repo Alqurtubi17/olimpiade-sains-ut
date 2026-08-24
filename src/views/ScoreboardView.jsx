@@ -170,7 +170,9 @@ export function ScoreboardView(props) {
       if (isCad) {
         return { ...prev, cadangan_qnum: (prev.cadangan_qnum || 1) + 1 };
       }
-      return { ...prev, round_type: "rebutan", status: "rebutan", rebutan_qnum: (prev.rebutan_qnum || 1) + 1 };
+      const maxQ = prev.rebutan_max_qnum || 10;
+      const nextQ = Math.min((prev.rebutan_qnum || 1) + 1, maxQ);
+      return { ...prev, round_type: "rebutan", status: "rebutan", rebutan_qnum: nextQ };
     });
     setCurrentEventId(null);
     setBuzzedTeam(null);
@@ -189,7 +191,9 @@ export function ScoreboardView(props) {
       if (prev.round_type === "cadangan") {
         return { ...prev, cadangan_qnum: (prev.cadangan_qnum || 1) + 1 };
       }
-      return { ...prev, rebutan_qnum: (prev.rebutan_qnum || 1) + 1 };
+      const maxQ = prev.rebutan_max_qnum || 10;
+      const nextQ = Math.min((prev.rebutan_qnum || 1) + 1, maxQ);
+      return { ...prev, rebutan_qnum: nextQ };
     });
     setCurrentEventId(null);
     setBuzzedTeam(null);
@@ -317,7 +321,7 @@ export function ScoreboardView(props) {
         </div>
       </div>
 
-      {/* Round Switcher Banner */}
+      {/* Round Switcher & Question Count Banner */}
       <Panel className="p-5 flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-4 flex-wrap">
           <span className="text-xs font-black uppercase tracking-wider opacity-70">BABAK AKTIF:</span>
@@ -326,13 +330,13 @@ export function ScoreboardView(props) {
               onClick={() => setMatch((m) => (m ? { ...m, round_type: "wajib", status: "wajib" } : m))}
               className={`px-4 py-2 rounded-lg font-black text-xs md:text-sm transition-all ${isWajib ? "bg-[#2C3592] text-white shadow-md" : isLight ? "text-slate-600 hover:text-slate-900" : "opacity-70 hover:opacity-100"}`}
             >
-              SOAL WAJIB (5 SOAL/TIM)
+              SOAL WAJIB ({match.wajib_max_qnum || 5} SOAL/TIM)
             </button>
             <button
               onClick={() => setMatch((m) => (m ? { ...m, round_type: "rebutan", status: "rebutan" } : m))}
               className={`px-4 py-2 rounded-lg font-black text-xs md:text-sm transition-all ${isRebutan ? "bg-red-600 text-white shadow-md" : isLight ? "text-slate-600 hover:text-slate-900" : "opacity-70 hover:opacity-100"}`}
             >
-              SOAL REBUTAN (10 SOAL)
+              SOAL REBUTAN ({match.rebutan_max_qnum || 10} SOAL)
             </button>
             <button
               onClick={() => setMatch((m) => (m ? { ...m, round_type: "cadangan", status: "cadangan" } : m))}
@@ -343,43 +347,77 @@ export function ScoreboardView(props) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-extrabold uppercase tracking-wider opacity-75">Durasi Waktu:</span>
-          <div className="flex items-center gap-1.5">
-            {[30, 45, 60].map((d) => (
-              <button
-                key={d}
-                onClick={() => {
-                  setTimerDuration(d);
-                  resetTimer(d);
-                }}
-                className={`px-3.5 py-1.5 text-xs rounded-xl font-extrabold border transition-all ${timerDuration === d ? "bg-[#FFE600] text-[#2C3592] border-amber-400 shadow-sm scale-105" : isLight ? "bg-white text-slate-700 border-slate-300 hover:bg-slate-100" : "border-slate-700 bg-slate-800 text-slate-200 opacity-80 hover:opacity-100"}`}
-              >
-                {d} Detik
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-300 dark:border-slate-700 shadow-sm">
-            <span className="text-xs font-extrabold opacity-75">Kustom:</span>
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Target Soal Setting */}
+          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 shadow-sm text-xs">
+            <span className="font-extrabold uppercase opacity-75">Max Soal Wajib:</span>
             <input
               type="number"
               min="1"
-              max="600"
-              className="w-14 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-0.5 text-center font-mono-num font-black text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#2C3592]"
-              value={timerDuration}
+              max="50"
+              className="w-12 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-1.5 py-0.5 text-center font-mono-num font-black text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#2C3592]"
+              value={match.wajib_max_qnum || 5}
               onChange={(e) => {
                 const val = parseInt(e.target.value, 10);
-                if (!isNaN(val) && val > 0 && val <= 600) {
-                  setTimerDuration(val);
-                  resetTimer(val);
-                } else if (e.target.value === "") {
-                  setTimerDuration("");
+                if (!isNaN(val) && val > 0) {
+                  setMatch((m) => m ? { ...m, wajib_max_qnum: val } : m);
                 }
               }}
-              placeholder="45"
             />
-            <span className="text-xs font-extrabold opacity-75">Detik</span>
+            <span className="font-extrabold uppercase opacity-75 ml-2">Rebutan:</span>
+            <input
+              type="number"
+              min="1"
+              max="100"
+              className="w-12 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-1.5 py-0.5 text-center font-mono-num font-black text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#2C3592]"
+              value={match.rebutan_max_qnum || 10}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                if (!isNaN(val) && val > 0) {
+                  setMatch((m) => m ? { ...m, rebutan_max_qnum: val } : m);
+                }
+              }}
+            />
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-extrabold uppercase tracking-wider opacity-75">Durasi Waktu:</span>
+            <div className="flex items-center gap-1.5">
+              {[30, 45, 60].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => {
+                    setTimerDuration(d);
+                    resetTimer(d);
+                  }}
+                  className={`px-3.5 py-1.5 text-xs rounded-xl font-extrabold border transition-all ${timerDuration === d ? "bg-[#FFE600] text-[#2C3592] border-amber-400 shadow-sm scale-105" : isLight ? "bg-white text-slate-700 border-slate-300 hover:bg-slate-100" : "border-slate-700 bg-slate-800 text-slate-200 opacity-80 hover:opacity-100"}`}
+                >
+                  {d} Detik
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-300 dark:border-slate-700 shadow-sm">
+              <span className="text-xs font-extrabold opacity-75">Kustom:</span>
+              <input
+                type="number"
+                min="1"
+                max="600"
+                className="w-14 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-0.5 text-center font-mono-num font-black text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#2C3592]"
+                value={timerDuration}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  if (!isNaN(val) && val > 0 && val <= 600) {
+                    setTimerDuration(val);
+                    resetTimer(val);
+                  } else if (e.target.value === "") {
+                    setTimerDuration("");
+                  }
+                }}
+                placeholder="45"
+              />
+              <span className="text-xs font-extrabold opacity-75">Detik</span>
+            </div>
           </div>
         </div>
       </Panel>

@@ -24,6 +24,8 @@ export function SetupView({ matches = [], onStart, onCancel, showCancel, theme }
   const [form, setForm] = useState(() => ({
     match_name: (typeof window !== "undefined" && localStorage.getItem("app_event_title")) || "FINAL OLIMPIADE SAINS",
     match_number: getNextMatchNumber(matches),
+    wajib_max_qnum: 5,
+    rebutan_max_qnum: 10,
     operator: "",
     juri: "",
     date: new Date().toISOString().slice(0, 10),
@@ -119,6 +121,12 @@ export function SetupView({ matches = [], onStart, onCancel, showCancel, theme }
           </Field>
           <Field label="Tanggal Pertandingan">
             <input type="date" className={inputCls} value={form.date} onChange={handleFormChange("date")} />
+          </Field>
+          <Field label="Jumlah Soal Wajib (per Tim)">
+            <input type="number" min="1" max="50" className={inputCls} value={form.wajib_max_qnum} onChange={handleFormChange("wajib_max_qnum")} placeholder="5" />
+          </Field>
+          <Field label="Jumlah Soal Rebutan (Total)">
+            <input type="number" min="1" max="100" className={inputCls} value={form.rebutan_max_qnum} onChange={handleFormChange("rebutan_max_qnum")} placeholder="10" />
           </Field>
           <Field label="Nama Operator / Pelaksana">
             <input className={inputCls} value={form.operator} onChange={handleFormChange("operator")} placeholder="Masukkan nama operator" />

@@ -48,7 +48,7 @@ export function ProjectorView({ match, timerDisplay, timerDuration, timerRunning
     ? match.cadangan_qnum || 1
     : match.rebutan_qnum || 1;
 
-  const qMaxDisplay = isWajib ? "5" : isCadangan ? "BEBAS" : "10";
+  const qMaxDisplay = isWajib ? (match.wajib_max_qnum || 5) : isCadangan ? "BEBAS" : (match.rebutan_max_qnum || 10);
 
   let gridCols = "grid-cols-2";
   if (teams.length === 3) gridCols = "grid-cols-1 md:grid-cols-3";

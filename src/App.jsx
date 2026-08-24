@@ -347,7 +347,7 @@ function Panel({ children, className = "" }) {
   return <div className={`glass-panel rounded-2xl shadow-lg ${className}`}>{children}</div>;
 }
 
-function Modal({ title, children, onClose }) {
+function Modal({ title, children, onClose, bodyClassName = "p-6" }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
       <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-3xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl border border-slate-200 dark:border-slate-800">
@@ -355,7 +355,7 @@ function Modal({ title, children, onClose }) {
           <h3 className="text-lg font-black tracking-tight">{title}</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-2xl leading-none px-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">×</button>
         </div>
-        <div className="p-6">{children}</div>
+        <div className={bodyClassName}>{children}</div>
       </div>
     </div>
   );
@@ -1100,9 +1100,9 @@ function MatchListView({ matches = [], onOpen, onNew, onDelete, onDeleteAll }) {
 
       {/* Delete Single Match Confirmation Modal */}
       {deleteTarget && (
-        <Modal title="Hapus Pertandingan" onClose={() => setDeleteTarget(null)}>
-          <div className="space-y-4">
-            <div className="p-4 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-2xl text-rose-900 dark:text-rose-200 text-xs font-medium space-y-1">
+        <Modal title="Hapus Pertandingan" onClose={() => setDeleteTarget(null)} bodyClassName="p-4 md:p-5">
+          <div className="space-y-3">
+            <div className="p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-2xl text-rose-900 dark:text-rose-200 text-xs font-medium space-y-1">
               <div className="font-extrabold text-sm flex items-center gap-1.5 text-rose-700 dark:text-rose-400">
                 <AlertTriangle className="w-4 h-4 shrink-0" /> Konfirmasi Penghapusan
               </div>
@@ -1111,15 +1111,15 @@ function MatchListView({ matches = [], onOpen, onNew, onDelete, onDeleteAll }) {
               </p>
             </div>
 
-            <div className="flex gap-3 pt-2">
-              <Btn tone="outline" className="flex-1" onClick={() => setDeleteTarget(null)}>Batal</Btn>
+            <div className="flex gap-2 pt-1">
+              <Btn tone="outline" className="flex-1 whitespace-nowrap text-xs md:text-sm" onClick={() => setDeleteTarget(null)}>Batal</Btn>
               <Btn
                 tone="red"
-                className="flex-1 font-black"
+                className="flex-1 font-black whitespace-nowrap text-xs md:text-sm px-3"
                 icon={Trash2}
                 onClick={handleConfirmDelete}
               >
-                YA, HAPUS PERTANDINGAN
+                HAPUS PERTANDINGAN
               </Btn>
             </div>
           </div>
@@ -1128,9 +1128,9 @@ function MatchListView({ matches = [], onOpen, onNew, onDelete, onDeleteAll }) {
 
       {/* Delete All Matches Confirmation Modal */}
       {showDeleteAllModal && (
-        <Modal title="Hapus SEMUA Pertandingan" onClose={() => setShowDeleteAllModal(false)}>
-          <div className="space-y-4">
-            <div className="p-4 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-2xl text-rose-900 dark:text-rose-200 text-xs font-medium space-y-1">
+        <Modal title="Hapus SEMUA Pertandingan" onClose={() => setShowDeleteAllModal(false)} bodyClassName="p-4 md:p-5">
+          <div className="space-y-3">
+            <div className="p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-2xl text-rose-900 dark:text-rose-200 text-xs font-medium space-y-1">
               <div className="font-extrabold text-sm flex items-center gap-1.5 text-rose-700 dark:text-rose-400">
                 <AlertTriangle className="w-4 h-4 shrink-0" /> Konfirmasi Penghapusan
               </div>
@@ -1139,15 +1139,15 @@ function MatchListView({ matches = [], onOpen, onNew, onDelete, onDeleteAll }) {
               </p>
             </div>
 
-            <div className="flex gap-3 pt-2">
-              <Btn tone="outline" className="flex-1" onClick={() => setShowDeleteAllModal(false)}>Batal</Btn>
+            <div className="flex gap-2 pt-1">
+              <Btn tone="outline" className="flex-1 whitespace-nowrap text-xs md:text-sm" onClick={() => setShowDeleteAllModal(false)}>Batal</Btn>
               <Btn
                 tone="red"
-                className="flex-1 font-black"
+                className="flex-1 font-black whitespace-nowrap text-xs md:text-sm px-3"
                 icon={Trash2}
                 onClick={handleConfirmDeleteAll}
               >
-                YA, HAPUS SEMUA PERTANDINGAN
+                HAPUS SEMUA
               </Btn>
             </div>
           </div>

@@ -985,9 +985,11 @@ function MatchListView({ matches = [], onOpen, onNew, onDelete, onDeleteAll }) {
 
   const handleConfirmDelete = () => {
     if (!deleteTarget) return;
-    onDelete(deleteTarget.id);
-    setDeleteTarget(null);
-    setDeleteInput("");
+    if (deleteInput.trim().toLowerCase() === "hapus") {
+      onDelete(deleteTarget.id);
+      setDeleteTarget(null);
+      setDeleteInput("");
+    }
   };
 
   const handleConfirmDeleteAll = () => {
@@ -1108,6 +1110,7 @@ function MatchListView({ matches = [], onOpen, onNew, onDelete, onDeleteAll }) {
               <Btn
                 tone="red"
                 className="flex-1 font-black"
+                disabled={deleteInput.trim().toLowerCase() !== "hapus"}
                 icon={Trash2}
                 onClick={handleConfirmDelete}
               >
@@ -2206,16 +2209,10 @@ export default function App() {
     }
 
     if (msg.type === "GLOBAL_MATCHES_INDEX" && Array.isArray(msg.payload)) {
-      setMatches((prevList) => {
-        const map = new Map();
-        prevList.forEach((m) => map.set(m.id, m));
-        msg.payload.forEach((m) => map.set(m.id, m));
-        const merged = Array.from(map.values());
-        try {
-          window.storage.set("matches-index", JSON.stringify(merged), false).catch(() => {});
-        } catch (e) {}
-        return merged;
-      });
+      setMatches(msg.payload);
+      try {
+        window.storage.set("matches-index", JSON.stringify(msg.payload), false).catch(() => {});
+      } catch (e) {}
       return;
     }
 

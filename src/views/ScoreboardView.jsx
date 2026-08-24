@@ -49,6 +49,20 @@ export function ScoreboardView(props) {
   const topTeams = teams.filter((t) => (t.score || 0) === maxScore);
   const isTie = topTeams.length > 1;
 
+  const wajibMax = match.wajib_max_qnum || 5;
+  const rebutanMax = match.rebutan_max_qnum || 10;
+
+  const currentTeamWajibCount = questionEvents.filter(
+    (e) => e.round_type === "wajib" && e.answering_team === answeringTeam && e.result !== null
+  ).length;
+
+  const totalRebutanCount = questionEvents.filter(
+    (e) => e.round_type === "rebutan" && e.result !== null
+  ).length;
+
+  const isWajibDoneForTeam = isWajib && currentTeamWajibCount >= wajibMax;
+  const isRebutanDone = !isWajib && !isCadangan && totalRebutanCount >= rebutanMax;
+
   useEffect(() => {
     if (teams.length > 0 && !teams.some((t) => t.id === answeringTeam)) {
       setAnsweringTeam(teams[0].id);
@@ -132,6 +146,16 @@ export function ScoreboardView(props) {
   }
 
   const resolveWajib = useCallback((result) => {
+    const wajibMax = match.wajib_max_qnum || 5;
+    const currentTeamWajibCount = questionEvents.filter(
+      (e) => e.round_type === "wajib" && e.answering_team === answeringTeam && e.result !== null
+    ).length;
+
+    if (currentTeamWajibCount >= wajibMax) {
+      alert(`Tim ${teamNameById(match, answeringTeam)} sudah menyelesaikan seluruh ${wajibMax} soal wajib!`);
+      return;
+    }
+
     pauseTimer();
     sounds[result === "benar" ? "correct" : "wrong"]();
     const pts = result === "benar" ? 100 : 0;
@@ -149,14 +173,25 @@ export function ScoreboardView(props) {
 
     setCurrentEventId(null);
     resetTimer(timerDuration);
-  }, [pauseTimer, sounds, currentEventId, setQuestionEvents, timerDuration, timerDisplay, commitScore, answeringTeam, setMatch, resetTimer]);
+  }, [pauseTimer, sounds, currentEventId, setQuestionEvents, timerDuration, timerDisplay, commitScore, answeringTeam, setMatch, resetTimer, questionEvents, match]);
 
   const resolveRebutan = useCallback((result) => {
+    const isCad = match.round_type === "cadangan";
+    if (!isCad) {
+      const totalRebutanCount = questionEvents.filter(
+        (e) => e.round_type === "rebutan" && e.result !== null
+      ).length;
+      const rebutanMax = match.rebutan_max_qnum || 10;
+      if (totalRebutanCount >= rebutanMax) {
+        alert(`Babak Soal Rebutan sudah menyelesaikan seluruh ${rebutanMax} soal!`);
+        return;
+      }
+    }
+
     pauseTimer();
     sounds[result === "benar" ? "correct" : "wrong"]();
     const pts = result === "benar" ? 150 : -50;
     const targetTeam = buzzedTeam || answeringTeam;
-    const isCad = match.round_type === "cadangan";
     const roundLabelStr = isCad ? "Soal Cadangan" : "Soal Rebutan";
 
     if (currentEventId) {
@@ -178,7 +213,7 @@ export function ScoreboardView(props) {
     setBuzzedTeam(null);
     setBuzzerLocked(false);
     resetTimer(timerDuration);
-  }, [pauseTimer, sounds, buzzedTeam, answeringTeam, currentEventId, setQuestionEvents, timerDuration, timerDisplay, commitScore, setMatch, resetTimer, match.round_type]);
+  }, [pauseTimer, sounds, buzzedTeam, answeringTeam, currentEventId, setQuestionEvents, timerDuration, timerDisplay, commitScore, setMatch, resetTimer, match, questionEvents]);
 
   const resolveRebutanTimeout = useCallback(() => {
     pauseTimer();
@@ -465,27 +500,51 @@ export function ScoreboardView(props) {
               <div className="space-y-5">
                 <div>
                   <div className="text-sm font-black text-[#2C3592] dark:text-blue-400 uppercase tracking-wider mb-1">
-                    PENILAIAN SOAL WAJIB ({teamNameById(match, answeringTeam).toUpperCase()}) — SOAL KE-{getWajibQnum(match, answeringTeam)}
+                    PENILAIAN SOAL WAJIB ({teamNameById(match, answeringTeam).toUpperCase()}) — SOAL KE-{getWajibQnum(match, answeringTeam)} DARI {wajibMax}
                   </div>
                   <p className="text-xs opacity-70 font-medium">Jalankan waktu di sebelah kiri, kemudian tentukan hasil jawaban tim.</p>
                 </div>
 
-                <div className="flex flex-col gap-3.5">
-                  <Btn tone="emerald" size="lg" icon={CheckCircle2} onClick={() => resolveWajib("benar")}>
-                    JAWABAN BENAR (+100 POIN) <span className="text-xs opacity-75 font-mono ml-1">[Enter / Y]</span>
-                  </Btn>
-                  <Btn tone="red" size="lg" icon={XCircle} onClick={() => resolveWajib("salah")}>
-                    JAWABAN SALAH (0 POIN) <span className="text-xs opacity-75 font-mono ml-1">[Backspace / N]</span>
-                  </Btn>
-                </div>
+                {isWajibDoneForTeam ? (
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-700 rounded-2xl text-emerald-900 dark:text-emerald-200 text-center space-y-2 shadow-sm">
+                    <div className="text-sm font-black flex items-center justify-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span>{teamNameById(match, answeringTeam).toUpperCase()} SUDAH MENJAWAB SEMUA {wajibMax} SOAL WAJIB!</span>
+                    </div>
+                    <p className="text-xs opacity-80 font-medium">
+                      Pilih tim lain di atas untuk menilai soal wajib mereka, atau klik <strong>SOAL REBUTAN</strong> di atas jika semua tim sudah selesai.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3.5">
+                    <Btn tone="emerald" size="lg" icon={CheckCircle2} onClick={() => resolveWajib("benar")}>
+                      JAWABAN BENAR (+100 POIN) <span className="text-xs opacity-75 font-mono ml-1">[Enter / Y]</span>
+                    </Btn>
+                    <Btn tone="red" size="lg" icon={XCircle} onClick={() => resolveWajib("salah")}>
+                      JAWABAN SALAH (0 POIN) <span className="text-xs opacity-75 font-mono ml-1">[Backspace / N]</span>
+                    </Btn>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-5">
                 <div className="text-sm font-black text-red-600 dark:text-red-400 uppercase tracking-wider">
-                  PENILAIAN SOAL REBUTAN (+150 / -50) — SOAL KE-{(match.rebutan_qnum || 1)}
+                  {isCadangan
+                    ? `PENILAIAN SOAL CADANGAN (+150 / -50) — SOAL KE-${(match.cadangan_qnum || 1)}`
+                    : `PENILAIAN SOAL REBUTAN (+150 / -50) — SOAL KE-${Math.min(match.rebutan_qnum || 1, rebutanMax)} DARI ${rebutanMax}`}
                 </div>
 
-                {!buzzedTeam ? (
+                {isRebutanDone ? (
+                  <div className="p-4 bg-amber-50 dark:bg-amber-950/70 border border-amber-300 dark:border-amber-700 rounded-2xl text-amber-900 dark:text-amber-200 text-center space-y-2 shadow-sm">
+                    <div className="text-sm font-black flex items-center justify-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <span>BABAK SOAL REBUTAN SELESAI ({rebutanMax}/{rebutanMax} SOAL)!</span>
+                    </div>
+                    <p className="text-xs opacity-80 font-medium">
+                      Silakan klik <strong>"Selesaikan Pertandingan"</strong> di atas, atau aktifkan <strong>"SOAL CADANGAN"</strong> jika perolehan poin tim bernilai SERI.
+                    </p>
+                  </div>
+                ) : !buzzedTeam ? (
                   <div>
                     <label className="block text-xs font-extrabold uppercase tracking-wider opacity-70 mb-3">
                       PILIH TIM YANG MENEKAN BEL TERCEPAT:

@@ -128,7 +128,7 @@ export function broadcastState(roomId, stateData) {
   });
 }
 
-export function broadcastGlobalMatchesIndex(matchesList) {
+export function broadcastGlobalMatchesIndex(matchesList, deletedIds = []) {
   pendingGlobalMatchesIndex = matchesList;
   if (!client || !client.connected) return;
 
@@ -138,6 +138,7 @@ export function broadcastGlobalMatchesIndex(matchesList) {
     senderId: currentClientId,
     timestamp: Date.now(),
     payload: matchesList,
+    deletedIds: Array.isArray(deletedIds) ? deletedIds : [],
   });
 
   client.publish(topic, payload, { qos: 1, retain: true });

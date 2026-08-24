@@ -234,30 +234,42 @@ export function App() {
     }
 
     if (msg.type === "GLOBAL_MATCHES_INDEX" && Array.isArray(msg.payload)) {
+      if (Array.isArray(msg.deletedIds)) {
+        msg.deletedIds.forEach((id) => recordDeletedMatchId(id));
+      }
+
       const deletedIds = getDeletedMatchIds();
       const incomingList = msg.payload.filter((m) => m && m.id && !deletedIds.includes(m.id));
 
       setMatches((prevList) => {
-        const map = new Map();
+        // Purge locally cached match files for any matches marked deleted
         prevList.forEach((m) => {
-          if (m && m.id && !deletedIds.includes(m.id)) map.set(m.id, m);
-        });
-        incomingList.forEach((m) => {
-          if (m && m.id && !deletedIds.includes(m.id)) map.set(m.id, m);
+          if (m && m.id && deletedIds.includes(m.id)) {
+            window.storage.delete(`match:${m.id}`, false).catch(() => {});
+            localStorage.removeItem(`olimpiade2026:personal:match:${m.id}`);
+          }
         });
 
-        const merged = Array.from(map.values());
+        // Use incoming remote list as primary source when synced
+        const nextList = incomingList;
 
-        if (JSON.stringify(merged) === JSON.stringify(prevList)) {
+        if (JSON.stringify(nextList) === JSON.stringify(prevList)) {
           return prevList;
         }
 
         isRemoteMatchesSyncRef.current = true;
         try {
-          window.storage.set("matches-index", JSON.stringify(merged), false).catch(() => {});
-          localStorage.setItem("olimpiade2026:personal:matches-index", JSON.stringify(merged));
+          window.storage.set("matches-index", JSON.stringify(nextList), false).catch(() => {});
+          localStorage.setItem("olimpiade2026:personal:matches-index", JSON.stringify(nextList));
         } catch (e) {}
-        return merged;
+
+        if (nextList.length === 0) {
+          setRoomId(null);
+          setMatch(null);
+          try { localStorage.removeItem("active_room"); } catch (e) {}
+        }
+
+        return nextList;
       });
       return;
     }
@@ -371,8 +383,7 @@ export function App() {
       isRemoteMatchesSyncRef.current = false;
       return;
     }
-    if (!matches || matches.length === 0) return;
-    broadcastGlobalMatchesIndex(matches);
+    broadcastGlobalMatchesIndex(matches || [], getDeletedMatchIds());
   }, [matches]);
 
   /* Real-time broadcast via MQTT */
@@ -632,7 +643,7 @@ export function App() {
         window.storage.set("matches-index", JSON.stringify(next), false).catch(() => { });
         localStorage.setItem("olimpiade2026:personal:matches-index", JSON.stringify(next));
       } catch (e) {}
-      broadcastGlobalMatchesIndex(next);
+      broadcastGlobalMatchesIndex(next, deletedIds);
       return next;
     });
 
@@ -652,6 +663,7 @@ export function App() {
 
   async function deleteAllMatches() {
     matches.forEach((m) => recordDeletedMatchId(m.id));
+    const deletedIds = getDeletedMatchIds();
 
     try {
       for (const m of matches) {
@@ -663,7 +675,7 @@ export function App() {
     } catch (e) { }
 
     setMatches([]);
-    broadcastGlobalMatchesIndex([]);
+    broadcastGlobalMatchesIndex([], deletedIds);
     setMatch(null);
     setQuestionEvents([]);
     setScoreLog([]);

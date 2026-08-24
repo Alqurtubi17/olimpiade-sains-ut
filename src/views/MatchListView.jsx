@@ -45,14 +45,14 @@ export function MatchListView({ matches = [], onOpen, onNew, onDelete, onDeleteA
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700/60 uppercase text-xs tracking-wider font-extrabold">
-                <th className="py-3.5 px-3">No</th>
-                <th className="py-3.5 px-3">Kode Room</th>
-                <th className="py-3.5 px-3">Tanggal</th>
-                <th className="py-3.5 px-3">Jumlah Tim</th>
-                <th className="py-3.5 px-3">Tim & Perolehan Poin</th>
-                <th className="py-3.5 px-3">Pemenang</th>
-                <th className="py-3.5 px-3">Status</th>
-                <th className="py-3.5 px-3 text-right">Aksi</th>
+                <th className="py-3.5 px-3 whitespace-nowrap">No</th>
+                <th className="py-3.5 px-3 whitespace-nowrap">Kode Room</th>
+                <th className="py-3.5 px-3 whitespace-nowrap">Tanggal</th>
+                <th className="py-3.5 px-3 whitespace-nowrap">Jumlah Tim</th>
+                <th className="py-3.5 px-3 whitespace-nowrap">Tim & Perolehan Poin</th>
+                <th className="py-3.5 px-3 whitespace-nowrap">Pemenang</th>
+                <th className="py-3.5 px-3 whitespace-nowrap">Status</th>
+                <th className="py-3.5 px-3 text-right whitespace-nowrap">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -64,9 +64,9 @@ export function MatchListView({ matches = [], onOpen, onNew, onDelete, onDeleteA
                 const roomCode = m.room_code || m.roomCode || "-";
                 return (
                   <tr key={m.id} className="border-b border-slate-100 dark:border-slate-800/40 hover:bg-slate-100/60 dark:hover:bg-slate-800/30">
-                    <td className="py-4 px-3 font-extrabold">{m.match_number}</td>
-                    <td className="py-4 px-3">
-                      <span className="font-mono text-xs font-black bg-blue-50 dark:bg-slate-800 text-[#2C3592] dark:text-amber-400 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-slate-700 shadow-sm uppercase tracking-wider">
+                    <td className="py-4 px-3 font-extrabold whitespace-nowrap">{m.match_number}</td>
+                    <td className="py-4 px-3 whitespace-nowrap">
+                      <span className="font-mono text-xs font-black bg-blue-50 dark:bg-slate-800 text-[#2C3592] dark:text-amber-400 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-slate-700 shadow-sm uppercase tracking-wider inline-block whitespace-nowrap">
                         {roomCode}
                       </span>
                     </td>

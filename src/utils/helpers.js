@@ -21,13 +21,19 @@ export function slug(s) {
 
 export function getMatchTeams(match) {
   if (!match) return [];
+  let list = [];
   if (Array.isArray(match.teams) && match.teams.length > 0) {
-    return match.teams;
+    list = match.teams;
+  } else {
+    list = [
+      { id: "A", name: "Tim A", school: "UT Bandung", score: 0, color: "blue" },
+      { id: "B", name: "Tim B", school: "UT Jakarta", score: 0, color: "red" },
+    ];
   }
-  return [
-    { id: "A", name: "Tim A", school: "UT Bandung", score: 0, color: "blue" },
-    { id: "B", name: "Tim B", school: "UT Jakarta", score: 0, color: "red" },
-  ];
+  return list.map((t) => ({
+    ...t,
+    score: typeof t.score === "number" ? t.score : 0,
+  }));
 }
 
 export function getWajibQnum(match, teamId) {
@@ -76,16 +82,24 @@ export function winnersLabel(match) {
   const teams = getMatchTeams(match);
   if (teams.length === 0) return "-";
 
-  if (match.winner) {
-    if (match.winner === "SERI") return "SERI";
+  const getScore = (t) => (typeof t.score === "number" ? t.score : 0);
+  const maxScore = Math.max(...teams.map(getScore));
+  const topTeams = teams.filter((t) => getScore(t) === maxScore);
+
+  if (match.winner && match.winner !== "SERI") {
     const found = teams.find((t) => t.id === match.winner);
     if (found) return found.name;
   }
 
-  const maxScore = Math.max(...teams.map((t) => t.score));
-  const topTeams = teams.filter((t) => t.score === maxScore);
-  if (topTeams.length > 1) return `SERI (${topTeams.map((t) => t.name).join(" & ")})`;
-  return topTeams[0] ? topTeams[0].name : "-";
+  if (topTeams.length === 1) {
+    return topTeams[0].name;
+  }
+
+  if (topTeams.length > 1) {
+    return `SERI (${topTeams.map((t) => t.name).join(" & ")})`;
+  }
+
+  return "-";
 }
 
 export function computeStats(match, questionEvents, buzzerEvents) {

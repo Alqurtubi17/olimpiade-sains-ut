@@ -62,6 +62,7 @@ export function SetupView({ matches = [], onStart, onCancel, showCancel, theme }
           name: `Tim ${letters[i]}`,
           school: `UT ${letters[i]}`,
           color: colors[i % colors.length],
+          score: 0,
         });
       }
     }

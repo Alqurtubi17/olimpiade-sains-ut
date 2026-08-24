@@ -693,9 +693,11 @@ export function App() {
 
   function finishMatch() {
     setMatch((prev) => {
+      if (!prev) return prev;
       const teams = getMatchTeams(prev);
-      const maxScore = Math.max(...teams.map((t) => t.score));
-      const topTeams = teams.filter((t) => t.score === maxScore);
+      const getScore = (t) => (typeof t.score === "number" ? t.score : 0);
+      const maxScore = Math.max(...teams.map(getScore));
+      const topTeams = teams.filter((t) => getScore(t) === maxScore);
       const winner = topTeams.length === 1 ? topTeams[0].id : "SERI";
       return { ...prev, status: "finished", winner, finished_at: nowIso() };
     });

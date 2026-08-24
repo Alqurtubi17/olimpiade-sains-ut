@@ -100,3 +100,7 @@ export const TEAM_COLORS = [
 export function getColor(colorId) {
   return TEAM_COLORS.find((c) => c.id === colorId) || TEAM_COLORS[0];
 }
+
+export const inputCls =
+  "w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#2C3592] dark:focus:ring-blue-500 shadow-sm transition-all";
+

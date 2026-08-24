@@ -2299,22 +2299,6 @@ export default function App() {
     });
   }, [match, questionEvents, scoreLog, buzzerEvents, timerRunning, timerDuration, timerStartedAt, roomId]);
 
-  /* ---------------- STORAGE: LOAD INDEX ---------------- */
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await window.storage.get("matches-index");
-        if (res && res.value) {
-          const list = JSON.parse(res.value);
-          setMatches(list);
-          if (list && list.length > 0) {
-            broadcastGlobalMatchesIndex(list);
-          }
-        }
-      } catch (e) { }
-    })();
-  }, []);
-
   /* Load specific match if URL has match parameter */
   useEffect(() => {
     if (viewState.matchParam) {

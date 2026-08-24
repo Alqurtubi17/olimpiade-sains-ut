@@ -1,0 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800;900&family=Outfit:wght@400;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Universitas Terbuka Signature Theme System */
+:root, .theme-light {
+  --bg-main: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --border-card: #cbd5e1;
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-sub: #1e293b;
+  --header-bg: #ffffff;
+  --header-border: #cbd5e1;
+  --input-bg: #f8fafc;
+  --input-border: #cbd5e1;
+  --input-text: #0f172a;
+  --accent-ut-yellow: #ffe600;
+  --accent-ut-navy: #2c3592;
+  color-scheme: light;
+}
+
+.dark, .theme-dark {
+  --bg-main: #020617;
+  --bg-card: #0f172a;
+  --bg-card-hover: #1e293b;
+  --border-card: #1e293b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-sub: #cbd5e1;
+  --header-bg: #0f172a;
+  --header-border: #1e293b;
+  --input-bg: #1e293b;
+  --input-border: #334155;
+  --input-text: #f8fafc;
+  --accent-ut-yellow: #ffe600;
+  --accent-ut-navy: #2c3592;
+  color-scheme: dark;
+}
+
+html, body, #root {
+  min-height: 100%;
+  background: linear-gradient(135deg, #eef2ff 0%, #f1f5f9 50%, #e0e7ff 100%);
+  color: var(--text-main);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+.dark html, .dark body, .dark #root, .theme-dark body {
+  background: #020617;
+}
+
+h1, h2, h3, h4, h5, h6, .font-heading {
+  font-family: 'Outfit', 'Inter', sans-serif;
+}
+
+.font-mono-num {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Glassmorphism helpers */
+.glass-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  backdrop-filter: blur(16px);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+}
+
+.theme-light .glass-panel {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: #cbd5e1;
+  box-shadow: 0 10px 30px -5px rgba(44, 53, 146, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+}
+
+.glass-panel-hover:hover {
+  background: var(--bg-card-hover);
+  border-color: rgba(44, 53, 146, 0.3);
+}
+
+/* Glowing team badges & rings */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(44, 53, 146, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(44, 53, 146, 0.8);
+  }
+}
+
+.buzz-active-glow {
+  animation: pulse-glow 1.5s infinite ease-in-out;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}

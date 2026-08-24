@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 550" width="100%" height="100%">
+  <!-- Navy Blue color: #2C3592, Yellow: #FFE600 -->
+  <defs>
+    <style>
+      .ut-navy { fill: #2C3592; }
+      .ut-yellow { fill: #FFE600; }
+      .ut-white { fill: #FFFFFF; }
+    </style>
+  </defs>
+
+  <!-- GLOBE TOP -->
+  <g class="ut-navy">
+    <!-- Globe Circle Segmented -->
+    <!-- Outer Globe Shape cut by white lines & central spire -->
+    <path d="M 120 120 A 150 150 0 0 1 380 120 H 120 Z" />
+    <path d="M 90 180 A 150 150 0 0 1 410 180 H 90 Z" />
+    <path d="M 85 240 A 150 150 0 0 1 415 240 H 85 Z" />
+    <path d="M 90 300 A 150 150 0 0 1 410 300 H 90 Z" />
+    <path d="M 120 360 A 150 150 0 0 1 380 360 H 120 Z" />
+  </g>
+
+  <!-- Horizontal White Bars cutting globe -->
+  <rect x="70" y="120" width="360" height="12" class="ut-white" />
+  <rect x="70" y="180" width="360" height="12" class="ut-white" />
+  <rect x="70" y="240" width="360" height="12" class="ut-white" />
+  <rect x="70" y="300" width="360" height="12" class="ut-white" />
+
+  <!-- Center White Vertical Spire/Pen Nib extending through globe -->
+  <path d="M 250 100 L 290 380 Q 250 420 210 380 Z" class="ut-white" />
+
+  <!-- OPEN BOOK BOTTOM -->
+  <!-- Yellow Left Page Fill -->
+  <path d="M 60 410 L 195 380 Q 205 425 210 440 L 90 415 Z" class="ut-yellow" />
+  <!-- Yellow Right Page Fill -->
+  <path d="M 440 410 L 305 380 Q 295 425 290 440 L 410 415 Z" class="ut-yellow" />
+
+  <!-- Blue Book Frame & Pages -->
+  <g class="ut-navy">
+    <!-- Left Wing Outer & Pages -->
+    <path d="M 100 300 L 215 330 Q 220 370 200 385 Q 180 355 100 340 Z" />
+    <path d="M 80 370 L 195 375 Q 195 400 185 410 Q 150 395 85 390 Z" />
+    <path d="M 35 435 L 75 360 L 210 385 Q 240 435 250 480 Q 190 460 35 435 Z" />
+
+    <!-- Right Wing Outer & Pages -->
+    <path d="M 400 300 L 285 330 Q 280 370 300 385 Q 320 355 400 340 Z" />
+    <path d="M 420 370 L 305 375 Q 305 400 315 410 Q 350 395 415 390 Z" />
+    <path d="M 465 435 L 425 360 L 290 385 Q 260 435 250 480 Q 310 460 465 435 Z" />
+
+    <!-- Pen Nib Center Line & Dot -->
+    <line x1="250" y1="410" x2="250" y2="465" stroke="#2C3592" stroke-width="6" stroke-linecap="round" />
+    <circle cx="250" cy="395" r="7" />
+  </g>
+
+  <!-- TEXT AT BOTTOM -->
+  <text x="250" y="525" text-anchor="middle" font-family="'Outfit', 'Inter', sans-serif" font-weight="900" font-size="34" letter-spacing="2" class="ut-navy">UNIVERSITAS TERBUKA</text>
+</svg>

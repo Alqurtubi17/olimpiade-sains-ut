@@ -27,6 +27,8 @@ export function generateRoomId() {
 
 let currentClientId = null;
 
+let pendingGlobalMatchesIndex = null;
+
 export function initSyncEngine(roomId, onMessage, onStatusChange) {
   if (client) {
     try {
@@ -71,6 +73,10 @@ export function initSyncEngine(roomId, onMessage, onStatusChange) {
             console.error("Gagal subscribe topics:", err);
           }
         });
+
+        if (pendingGlobalMatchesIndex !== null) {
+          broadcastGlobalMatchesIndex(pendingGlobalMatchesIndex);
+        }
       });
 
       client.on("message", (topic, payload) => {
@@ -123,6 +129,7 @@ export function broadcastState(roomId, stateData) {
 }
 
 export function broadcastGlobalMatchesIndex(matchesList) {
+  pendingGlobalMatchesIndex = matchesList;
   if (!client || !client.connected) return;
 
   const topic = `olimpiade2026/global/matches_index`;

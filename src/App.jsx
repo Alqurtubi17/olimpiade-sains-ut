@@ -2450,12 +2450,16 @@ export default function App() {
 
   async function deleteMatch(matchId) {
     try {
-      await window.storage.set(`match:${matchId}`, null, false);
+      await window.storage.delete(`match:${matchId}`, false);
+      localStorage.removeItem(`olimpiade2026:personal:match:${matchId}`);
     } catch (e) { }
 
     setMatches((prev) => {
       const next = prev.filter((m) => m.id !== matchId);
-      window.storage.set("matches-index", JSON.stringify(next), false).catch(() => { });
+      try {
+        window.storage.set("matches-index", JSON.stringify(next), false).catch(() => { });
+        localStorage.setItem("olimpiade2026:personal:matches-index", JSON.stringify(next));
+      } catch (e) {}
       broadcastGlobalMatchesIndex(next);
       return next;
     });
@@ -2473,9 +2477,11 @@ export default function App() {
   async function deleteAllMatches() {
     try {
       for (const m of matches) {
-        await window.storage.set(`match:${m.id}`, null, false);
+        await window.storage.delete(`match:${m.id}`, false);
+        localStorage.removeItem(`olimpiade2026:personal:match:${m.id}`);
       }
       await window.storage.set("matches-index", "[]", false);
+      localStorage.setItem("olimpiade2026:personal:matches-index", "[]");
     } catch (e) { }
 
     setMatches([]);

@@ -595,15 +595,38 @@ function exportMatchExcel(m, questionEvents, scoreLog, buzzerEvents) {
 
 /* ============================== SETUP VIEW ============================== */
 
-function SetupView({ onStart, onCancel, showCancel, theme }) {
+export function getNextMatchNumber(matchesList = []) {
+  if (!Array.isArray(matchesList) || matchesList.length === 0) return "01";
+
+  let maxNum = 0;
+  for (const m of matchesList) {
+    if (m && m.match_number) {
+      const parsed = parseInt(String(m.match_number).replace(/\D/g, ""), 10);
+      if (!isNaN(parsed) && parsed > maxNum) {
+        maxNum = parsed;
+      }
+    }
+  }
+  const next = maxNum + 1;
+  return String(next).padStart(2, "0");
+}
+
+function SetupView({ matches = [], onStart, onCancel, showCancel, theme }) {
   const [teamCount, setTeamCount] = useState(2);
-  const [form, setForm] = useState({
-    match_name: localStorage.getItem("app_event_title") || "Final Olimpiade Sains",
-    match_number: "01",
+  const [form, setForm] = useState(() => ({
+    match_name: (typeof window !== "undefined" && localStorage.getItem("app_event_title")) || "Final Olimpiade Sains",
+    match_number: getNextMatchNumber(matches),
     operator: "",
     juri: "",
     date: new Date().toISOString().slice(0, 10),
-  });
+  }));
+
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      match_number: getNextMatchNumber(matches),
+    }));
+  }, [matches]);
 
   const [teams, setTeams] = useState([
     { id: "A", name: "Tim A", school: "UT Bandung", color: "blue" },
@@ -2223,6 +2246,7 @@ export default function App() {
         setMatch(data.match);
         setMatches((prevList) => {
           const idx = prevList.findIndex((x) => x.id === data.match.id);
+          if (idx === -1) return prevList;
           const entry = {
             id: data.match.id,
             match_number: data.match.match_number,
@@ -2233,9 +2257,8 @@ export default function App() {
             winner: data.match.winner,
             room_code: data.match.room_code || roomId,
           };
-          let next;
-          if (idx === -1) next = [...prevList, entry];
-          else { next = [...prevList]; next[idx] = entry; }
+          const next = [...prevList];
+          next[idx] = entry;
           try {
             window.storage.set("matches-index", JSON.stringify(next), false).catch(() => {});
             window.storage.set(`match:${data.match.id}`, JSON.stringify({
@@ -2416,7 +2439,7 @@ export default function App() {
     const m = {
       id: uid(),
       room_code: newRoom,
-      match_number: form.match_number || "01",
+      match_number: form.match_number || getNextMatchNumber(matches),
       match_name: form.match_name || localStorage.getItem("app_event_title") || "Final Olimpiade Sains",
       date: form.date,
       teams: form.teams || [
@@ -2491,6 +2514,8 @@ export default function App() {
       setQuestionEvents([]);
       setScoreLog([]);
       setBuzzerEvents([]);
+      setRoomId(null);
+      try { localStorage.removeItem("active_room"); } catch (e) {}
     }
   }
 
@@ -2508,6 +2533,8 @@ export default function App() {
     setQuestionEvents([]);
     setScoreLog([]);
     setBuzzerEvents([]);
+    setRoomId(null);
+    try { localStorage.removeItem("active_room"); } catch (e) {}
   }
 
   function finishMatch() {

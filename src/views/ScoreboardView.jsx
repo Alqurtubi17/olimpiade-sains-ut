@@ -259,7 +259,7 @@ export function ScoreboardView(props) {
         return;
       }
 
-      if (!isWajib && !buzzedTeam && !buzzerLocked) {
+      if (!isWajib && !buzzedTeam && !buzzerLocked && !isRebutanDone) {
         const keyToTeamIdx = {
           a: 0, 1: 0,
           b: 1, 2: 1,
@@ -281,7 +281,7 @@ export function ScoreboardView(props) {
         }
       }
 
-      if (isWajib || buzzedTeam) {
+      if ((isWajib && !isWajibDoneForTeam) || (buzzedTeam && !isRebutanDone)) {
         if (key === "y" || e.code === "Enter") {
           e.preventDefault();
           if (isWajib) resolveWajib("benar");
@@ -296,7 +296,7 @@ export function ScoreboardView(props) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isWajib, buzzedTeam, buzzerLocked, timerRunning, teams, answeringTeam, currentEventId, timerDuration, pauseTimer, startTimer, cancelBuzzer, triggerBuzz, resolveWajib, resolveRebutan]);
+  }, [isWajib, isWajibDoneForTeam, isRebutanDone, buzzedTeam, buzzerLocked, timerRunning, teams, answeringTeam, currentEventId, timerDuration, pauseTimer, startTimer, cancelBuzzer, triggerBuzz, resolveWajib, resolveRebutan]);
 
   useEffect(() => {
     props.setTimeUpHandler(() => () => {

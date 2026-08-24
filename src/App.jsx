@@ -469,43 +469,45 @@ export function App() {
 
   /* Scoring helpers */
   function commitScore(teamId, points, eventLabel) {
-    let latestLogEntry = null;
+    if (!match) return;
+    const teams = getMatchTeams(match);
+    const teamObj = teams.find((t) => t.id === teamId);
+    const before = teamObj ? (typeof teamObj.score === "number" ? teamObj.score : 0) : 0;
+    const after = before + points;
+
+    const logEntry = {
+      id: uid(),
+      match_id: match.id,
+      team: teamId,
+      event: eventLabel,
+      points_change: points,
+      score_before: before,
+      score_after: after,
+      operator: match.operator || "-",
+      timestamp: nowIso(),
+    };
 
     setMatch((prev) => {
       if (!prev) return prev;
-      const teams = getMatchTeams(prev);
-      const teamIdx = teams.findIndex((t) => t.id === teamId);
-      if (teamIdx === -1) return prev;
+      const prevTeams = getMatchTeams(prev);
+      const idx = prevTeams.findIndex((t) => t.id === teamId);
+      if (idx === -1) return prev;
 
-      const before = teams[teamIdx].score || 0;
-      const after = before + points;
+      const pBefore = typeof prevTeams[idx].score === "number" ? prevTeams[idx].score : 0;
+      const pAfter = pBefore + points;
 
-      const updatedTeams = [...teams];
-      updatedTeams[teamIdx] = { ...updatedTeams[teamIdx], score: after };
-
-      latestLogEntry = {
-        id: uid(),
-        match_id: prev.id,
-        team: teamId,
-        event: eventLabel,
-        points_change: points,
-        score_before: before,
-        score_after: after,
-        operator: prev.operator || "-",
-        timestamp: nowIso(),
-      };
+      const updatedTeams = [...prevTeams];
+      updatedTeams[idx] = { ...updatedTeams[idx], score: pAfter };
 
       const existingLogs = Array.isArray(prev.score_log) ? prev.score_log : [];
       return {
         ...prev,
         teams: updatedTeams,
-        score_log: [...existingLogs, latestLogEntry],
+        score_log: [...existingLogs, logEntry],
       };
     });
 
-    if (latestLogEntry) {
-      setScoreLog((prevLog) => [...prevLog, latestLogEntry]);
-    }
+    setScoreLog((prevLog) => [...prevLog, logEntry]);
   }
 
   /* Match lifecycle */

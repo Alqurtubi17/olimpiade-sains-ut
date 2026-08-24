@@ -2366,17 +2366,18 @@ export default function App() {
         await window.storage.set(`match:${match.id}`, JSON.stringify({ match, questionEvents, scoreLog, buzzerEvents }), false);
         setMatches((prevList) => {
           const idx = prevList.findIndex((x) => x.id === match.id);
+          if (idx === -1) return prevList;
           const entry = {
             id: match.id,
             match_number: match.match_number,
+            match_name: match.match_name,
             date: match.date,
             teams: getMatchTeams(match),
             status: match.status,
             winner: match.winner
           };
-          let next;
-          if (idx === -1) next = [...prevList, entry];
-          else { next = [...prevList]; next[idx] = entry; }
+          const next = [...prevList];
+          next[idx] = entry;
           window.storage.set("matches-index", JSON.stringify(next), false).catch(() => { });
           return next;
         });

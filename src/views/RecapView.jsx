@@ -22,13 +22,13 @@ export function RecapView({ match, questionEvents, scoreLog, buzzerEvents, onBac
       </div>
 
       <Panel className="p-6 md:p-10 space-y-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+        <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6">
           {teams.map((t) => {
             const colorInfo = getColor(t.color);
             const isLight = theme === "light";
             const textColor = isLight ? colorInfo.textLight : colorInfo.textDark;
             return (
-              <div key={t.id} className="text-center p-5 border border-slate-200 dark:border-slate-700/60 rounded-2xl bg-white/60 dark:bg-slate-800/30 shadow-sm">
+              <div key={t.id} className="text-center p-5 border border-slate-200 dark:border-slate-700/60 rounded-2xl bg-white/60 dark:bg-slate-800/30 shadow-sm min-w-[180px] md:min-w-[220px] flex-1 max-w-[260px]">
                 <div className={`font-extrabold text-lg ${textColor}`}>{t.name}</div>
                 <div className="opacity-60 text-xs mb-3 font-medium">{t.school || "-"}</div>
                 <div className={`font-mono-num font-black text-5xl ${textColor}`}>{t.score}</div>

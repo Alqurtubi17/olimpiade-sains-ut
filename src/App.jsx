@@ -1008,19 +1008,15 @@ function MatchListView({ matches = [], onOpen, onNew, onDelete, onDeleteAll }) {
 
   const handleConfirmDelete = () => {
     if (!deleteTarget) return;
-    if (deleteInput.trim().toLowerCase() === "hapus") {
-      onDelete(deleteTarget.id);
-      setDeleteTarget(null);
-      setDeleteInput("");
-    }
+    onDelete(deleteTarget.id);
+    setDeleteTarget(null);
+    setDeleteInput("");
   };
 
   const handleConfirmDeleteAll = () => {
-    if (deleteAllInput.trim().toUpperCase() === "HAPUS SEMUA") {
-      onDeleteAll();
-      setShowDeleteAllModal(false);
-      setDeleteAllInput("");
-    }
+    onDeleteAll();
+    setShowDeleteAllModal(false);
+    setDeleteAllInput("");
   };
 
   return (
@@ -1111,33 +1107,19 @@ function MatchListView({ matches = [], onOpen, onNew, onDelete, onDeleteAll }) {
                 <AlertTriangle className="w-4 h-4 shrink-0" /> Konfirmasi Penghapusan
               </div>
               <p>
-                Anda akan menghapus data <strong>Pertandingan No. {deleteTarget.match_number}</strong> ({getMatchTeams(deleteTarget).map((t) => t.name).join(" vs ")}).
+                Apakah Anda yakin ingin menghapus data <strong>Pertandingan No. {deleteTarget.match_number}</strong> ({getMatchTeams(deleteTarget).map((t) => t.name).join(" vs ")})?
               </p>
             </div>
-
-            <Field label="Konfirmasi Ketikan">
-              <p className="text-xs opacity-75 mb-2 font-medium">
-                Ketik kata <strong className="text-red-600 dark:text-red-400">HAPUS</strong> untuk mengaktifkan tombol hapus:
-              </p>
-              <input
-                className={inputCls}
-                value={deleteInput}
-                onChange={(e) => setDeleteInput(e.target.value)}
-                placeholder="Ketik HAPUS untuk konfirmasi"
-                autoFocus
-              />
-            </Field>
 
             <div className="flex gap-3 pt-2">
               <Btn tone="outline" className="flex-1" onClick={() => setDeleteTarget(null)}>Batal</Btn>
               <Btn
                 tone="red"
                 className="flex-1 font-black"
-                disabled={deleteInput.trim().toLowerCase() !== "hapus"}
                 icon={Trash2}
                 onClick={handleConfirmDelete}
               >
-                HAPUS PERTANDINGAN
+                YA, HAPUS PERTANDINGAN
               </Btn>
             </div>
           </div>
@@ -1157,29 +1139,15 @@ function MatchListView({ matches = [], onOpen, onNew, onDelete, onDeleteAll }) {
               </p>
             </div>
 
-            <Field label="Konfirmasi Ketikan Wajib">
-              <p className="text-xs opacity-75 mb-2 font-medium">
-                Untuk mengonfirmasi penghapusan seluruh pertandingan, ketik kata <strong className="text-red-600 dark:text-red-400">HAPUS SEMUA</strong>:
-              </p>
-              <input
-                className={inputCls}
-                value={deleteAllInput}
-                onChange={(e) => setDeleteAllInput(e.target.value)}
-                placeholder="Ketik HAPUS SEMUA untuk konfirmasi"
-                autoFocus
-              />
-            </Field>
-
             <div className="flex gap-3 pt-2">
               <Btn tone="outline" className="flex-1" onClick={() => setShowDeleteAllModal(false)}>Batal</Btn>
               <Btn
                 tone="red"
-                className="flex-1"
-                disabled={deleteAllInput.trim().toUpperCase() !== "HAPUS SEMUA"}
+                className="flex-1 font-black"
                 icon={Trash2}
                 onClick={handleConfirmDeleteAll}
               >
-                HAPUS SEMUA PERTANDINGAN
+                YA, HAPUS SEMUA PERTANDINGAN
               </Btn>
             </div>
           </div>

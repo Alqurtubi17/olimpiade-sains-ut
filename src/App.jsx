@@ -2309,9 +2309,7 @@ export default function App() {
 
   /* Broadcast matches index globally whenever matches list updates */
   useEffect(() => {
-    if (matches && matches.length > 0) {
-      broadcastGlobalMatchesIndex(matches);
-    }
+    broadcastGlobalMatchesIndex(matches || []);
   }, [matches]);
 
   /* ---------------- REAL-TIME BROADCAST VIA MQTT ---------------- */

@@ -94,7 +94,7 @@ export function ProjectorView({ match, timerDisplay, timerDuration, timerRunning
       <div className="flex flex-col items-center justify-center mb-8 gap-2 z-10">
         <div className={`font-extrabold tracking-widest text-xl md:text-3xl ${isLight ? "text-[#2C3592]" : "text-amber-400"}`}>{roundLabel}</div>
         <div className="font-bold text-base md:text-xl opacity-80 mb-2">
-          {isCadangan ? `PERTANYAAN CADANGAN KE-${qNum}` : `PERTANYAAN KE-${qNum} DARI ${qMaxDisplay}`}
+          {isCadangan ? `PERTANYAAN CADANGAN KE-${qNum}` : (typeof qMaxDisplay === "number" && qNum > qMaxDisplay) ? `BABAK SELESAI (${qMaxDisplay}/${qMaxDisplay} SOAL)` : `PERTANYAAN KE-${qNum} DARI ${qMaxDisplay}`}
         </div>
         <TimerBar seconds={timerDisplay} duration={timerDuration} running={timerRunning} size="xl" theme={theme} />
       </div>

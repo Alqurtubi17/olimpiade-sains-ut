@@ -72,7 +72,19 @@ export function ScoreboardView(props) {
   const currentEvent = questionEvents.find((e) => e.id === currentEventId) || null;
 
   const triggerBuzz = useCallback((teamId) => {
-    if (isWajib || buzzerLocked || buzzedTeam) return;
+    if (isWajib) return;
+    const isCad = match.round_type === "cadangan";
+    if (!isCad) {
+      const totalRebutanCount = questionEvents.filter(
+        (e) => e.round_type === "rebutan" && e.result !== null
+      ).length;
+      const rebutanMax = match.rebutan_max_qnum || 10;
+      if (totalRebutanCount >= rebutanMax) {
+        alert(`Babak Soal Rebutan sudah selesai (${rebutanMax}/${rebutanMax} soal)!`);
+        return;
+      }
+    }
+    if (buzzerLocked || buzzedTeam) return;
     setBuzzedTeam(teamId);
     setBuzzerLocked(true);
     setAnsweringTeam(teamId);
@@ -104,7 +116,7 @@ export function ScoreboardView(props) {
     setQuestionEvents((prev) => [...prev, ev]);
     setCurrentEventId(ev.id);
     startTimer(timerDuration);
-  }, [isWajib, buzzerLocked, buzzedTeam, teams, sounds, roomId, match.id, match.round_type, match.rebutan_qnum, match.cadangan_qnum, setQuestionEvents, startTimer, timerDuration]);
+  }, [isWajib, buzzerLocked, buzzedTeam, teams, sounds, roomId, match.id, match.round_type, match.rebutan_qnum, match.cadangan_qnum, match.rebutan_max_qnum, setQuestionEvents, startTimer, timerDuration, questionEvents]);
 
   useEffect(() => {
     if (triggerBuzzRef) {
@@ -123,6 +135,14 @@ export function ScoreboardView(props) {
 
   function startWajibTimer() {
     if (!answeringTeam || timerRunning || matchPaused) return;
+    const currentTeamWajibCount = questionEvents.filter(
+      (e) => e.round_type === "wajib" && e.answering_team === answeringTeam && e.result !== null
+    ).length;
+    const wajibMax = match.wajib_max_qnum || 5;
+    if (currentTeamWajibCount >= wajibMax) {
+      alert(`Tim ${teamNameById(match, answeringTeam)} sudah menyelesaikan seluruh ${wajibMax} soal wajib!`);
+      return;
+    }
     let ev = currentEvent;
     const currentQnum = getWajibQnum(match, answeringTeam);
     if (!ev) {
@@ -159,12 +179,28 @@ export function ScoreboardView(props) {
     pauseTimer();
     sounds[result === "benar" ? "correct" : "wrong"]();
     const pts = result === "benar" ? 100 : 0;
+    const currentQnum = getWajibQnum(match, answeringTeam);
 
     if (currentEventId) {
       setQuestionEvents((prev) => prev.map((e) => e.id === currentEventId ? { ...e, result, points: pts, ended_at: nowIso(), timer_used: timerDuration - timerDisplay } : e));
+    } else {
+      const ev = {
+        id: uid(),
+        match_id: match.id,
+        round_type: "wajib",
+        question_number: currentQnum,
+        answering_team: answeringTeam,
+        result,
+        points: pts,
+        started_at: nowIso(),
+        ended_at: nowIso(),
+        timer_used: 0,
+        note: `Soal Wajib Tim ${answeringTeam}`,
+      };
+      setQuestionEvents((prev) => [...prev, ev]);
     }
 
-    commitScore(answeringTeam, pts, `Soal Wajib (${resultLabel(result)})`);
+    commitScore(answeringTeam, pts, `Soal Wajib No. ${currentQnum} (${resultLabel(result)})`);
 
     setMatch((prev) => {
       if (!prev) return prev;
@@ -193,20 +229,35 @@ export function ScoreboardView(props) {
     const pts = result === "benar" ? 150 : -50;
     const targetTeam = buzzedTeam || answeringTeam;
     const roundLabelStr = isCad ? "Soal Cadangan" : "Soal Rebutan";
+    const currentQnum = isCad ? (match.cadangan_qnum || 1) : (match.rebutan_qnum || 1);
 
     if (currentEventId) {
       setQuestionEvents((prev) => prev.map((e) => e.id === currentEventId ? { ...e, result, answering_team: targetTeam, points: pts, ended_at: nowIso(), timer_used: timerDuration - timerDisplay } : e));
+    } else {
+      const ev = {
+        id: uid(),
+        match_id: match.id,
+        round_type: isCad ? "cadangan" : "rebutan",
+        question_number: currentQnum,
+        answering_team: targetTeam,
+        result,
+        points: pts,
+        started_at: nowIso(),
+        ended_at: nowIso(),
+        timer_used: 0,
+        note: roundLabelStr,
+      };
+      setQuestionEvents((prev) => [...prev, ev]);
     }
 
-    commitScore(targetTeam, pts, `${roundLabelStr} (${resultLabel(result)})`);
+    commitScore(targetTeam, pts, `${roundLabelStr} No. ${currentQnum} (${resultLabel(result)})`);
 
     setMatch((prev) => {
       if (!prev) return prev;
       if (isCad) {
         return { ...prev, cadangan_qnum: (prev.cadangan_qnum || 1) + 1 };
       }
-      const maxQ = prev.rebutan_max_qnum || 10;
-      const nextQ = Math.min((prev.rebutan_qnum || 1) + 1, maxQ);
+      const nextQ = (prev.rebutan_qnum || 1) + 1;
       return { ...prev, round_type: "rebutan", status: "rebutan", rebutan_qnum: nextQ };
     });
     setCurrentEventId(null);
@@ -226,8 +277,7 @@ export function ScoreboardView(props) {
       if (prev.round_type === "cadangan") {
         return { ...prev, cadangan_qnum: (prev.cadangan_qnum || 1) + 1 };
       }
-      const maxQ = prev.rebutan_max_qnum || 10;
-      const nextQ = Math.min((prev.rebutan_qnum || 1) + 1, maxQ);
+      const nextQ = (prev.rebutan_qnum || 1) + 1;
       return { ...prev, rebutan_qnum: nextQ };
     });
     setCurrentEventId(null);
@@ -310,7 +360,11 @@ export function ScoreboardView(props) {
 
   function handleManualScoreCorrection() {
     if (!correctTeamId) return;
-    const pts = parseInt(correctPoints, 10) || 0;
+    const pts = parseInt(correctPoints, 10);
+    if (isNaN(pts)) {
+      alert("Masukkan jumlah perubahan poin (+/-) yang valid, contoh: 100 atau -50");
+      return;
+    }
     commitScore(correctTeamId, pts, `Koreksi Poin Manual (${correctReason || "Koreksi Juri"})`);
     setShowCorrectionModal(false);
     setCorrectReason("");
@@ -340,7 +394,7 @@ export function ScoreboardView(props) {
           >
             Layar Besar (Proyektor)
           </Btn>
-          <Btn tone="outline" size="sm" icon={Edit3} onClick={() => setShowCorrectionModal(true)}>
+          <Btn tone="outline" size="sm" icon={Edit3} onClick={() => { setCorrectTeamId(answeringTeam || teams[0]?.id || "A"); setShowCorrectionModal(true); }}>
             Koreksi Poin
           </Btn>
           <button

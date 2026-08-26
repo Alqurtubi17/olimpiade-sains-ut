@@ -222,7 +222,7 @@ export function App() {
     if (!msg) return;
 
     if (msg.type === "BUZZER_PRESS" && msg.teamId) {
-      if (soundsRef.current) soundsRef.current.buzzTeam(0);
+      if (soundsRef.current) soundsRef.current.buzzTeam(msg.teamId);
       if (triggerBuzzRef.current) {
         triggerBuzzRef.current(msg.teamId);
       }
@@ -250,7 +250,11 @@ export function App() {
           }
         });
 
-        // Use incoming remote list as primary source when synced
+        // Ignore empty incoming index if we already have local matches
+        if (incomingList.length === 0 && prevList.length > 0) {
+          return prevList;
+        }
+
         const nextList = incomingList;
 
         if (JSON.stringify(nextList) === JSON.stringify(prevList)) {
@@ -262,12 +266,6 @@ export function App() {
           window.storage.set("matches-index", JSON.stringify(nextList), false).catch(() => {});
           localStorage.setItem("olimpiade2026:personal:matches-index", JSON.stringify(nextList));
         } catch (e) {}
-
-        if (nextList.length === 0) {
-          setRoomId(null);
-          setMatch(null);
-          try { localStorage.removeItem("active_room"); } catch (e) {}
-        }
 
         return nextList;
       });
@@ -313,7 +311,11 @@ export function App() {
           return next;
         });
       }
-      if (data.questionEvents) setQuestionEvents(data.questionEvents);
+      if (data.questionEvents) {
+        setQuestionEvents(data.questionEvents);
+      } else if (data.match && data.match.question_events) {
+        setQuestionEvents(data.match.question_events);
+      }
       if (data.scoreLog && Array.isArray(data.scoreLog)) {
         setScoreLog(data.scoreLog);
       } else if (data.match && Array.isArray(data.match.score_log)) {
@@ -367,11 +369,8 @@ export function App() {
       } catch (e) {}
 
       const filtered = list.filter((m) => m && m.id && !deletedIds.includes(m.id));
-      setMatches(filtered);
-
-      if (filtered.length === 0) {
-        setRoomId(null);
-        try { localStorage.removeItem("active_room"); } catch (e) {}
+      if (filtered.length > 0) {
+        setMatches(filtered);
       }
     }
     loadMatchesIndex();
@@ -383,7 +382,9 @@ export function App() {
       isRemoteMatchesSyncRef.current = false;
       return;
     }
-    broadcastGlobalMatchesIndex(matches || [], getDeletedMatchIds());
+    if (matches && matches.length > 0) {
+      broadcastGlobalMatchesIndex(matches, getDeletedMatchIds());
+    }
   }, [matches]);
 
   /* Real-time broadcast via MQTT */
@@ -433,7 +434,7 @@ export function App() {
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
     saveTimeout.current = setTimeout(async () => {
       try {
-        const payloadData = { match, questionEvents, scoreLog, buzzerEvents };
+        const payloadData = { match: { ...match, question_events: questionEvents }, questionEvents, scoreLog, buzzerEvents };
         await window.storage.set(`match:${match.id}`, JSON.stringify(payloadData), false);
         localStorage.setItem(`olimpiade2026:personal:match:${match.id}`, JSON.stringify(payloadData));
 
@@ -470,6 +471,7 @@ export function App() {
   /* Scoring helpers */
   function commitScore(teamId, points, eventLabel) {
     if (!match) return;
+    lastLocalUpdateRef.current = Date.now();
     const teams = getMatchTeams(match);
     const teamObj = teams.find((t) => t.id === teamId);
     const before = teamObj ? (typeof teamObj.score === "number" ? teamObj.score : 0) : 0;
@@ -617,7 +619,7 @@ export function App() {
 
         connectToRoom(matchCode);
         setMatch(data.match);
-        setQuestionEvents(data.questionEvents || []);
+        setQuestionEvents(data.questionEvents || data.match?.question_events || []);
         setScoreLog(data.scoreLog || []);
         setBuzzerEvents(data.buzzerEvents || []);
         setTimerDuration(data.match.timer_duration || 45);

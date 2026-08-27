@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Zap, Maximize2, Minimize2 } from "lucide-react";
+import { Zap, Maximize2, Minimize2, Lock } from "lucide-react";
 import { getColor } from "../constants.js";
 import { getMatchTeams } from "../utils/helpers.js";
 import { broadcastBuzzer } from "../lib/sync-engine.js";
 
-export function BuzzerPlayerView({ roomId, match, syncStatus, onConnectRoom, sounds, theme }) {
+export function BuzzerPlayerView({ roomId, match, syncStatus, onConnectRoom, sounds, theme, lockedOutTeams = [] }) {
   const containerRef = useRef(null);
   const teams = getMatchTeams(match);
   const [selectedTeamId, setSelectedTeamId] = useState(() => {
@@ -12,6 +12,8 @@ export function BuzzerPlayerView({ roomId, match, syncStatus, onConnectRoom, sou
   });
   const [flashBg, setFlashBg] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const isLockedOut = Array.isArray(lockedOutTeams) && lockedOutTeams.includes(selectedTeamId);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -41,7 +43,7 @@ export function BuzzerPlayerView({ roomId, match, syncStatus, onConnectRoom, sou
   };
 
   const handleBuzzPress = useCallback(() => {
-    if (!roomId) return;
+    if (!roomId || isLockedOut) return;
     if (sounds && sounds.buzzTeam) {
       sounds.buzzTeam(teams.findIndex((t) => t.id === selectedTeamId) || 0);
     }
@@ -49,7 +51,7 @@ export function BuzzerPlayerView({ roomId, match, syncStatus, onConnectRoom, sou
     setTimeout(() => setFlashBg(false), 400);
 
     broadcastBuzzer(roomId, selectedTeamId);
-  }, [roomId, selectedTeamId, teams, sounds]);
+  }, [roomId, selectedTeamId, teams, sounds, isLockedOut]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -102,13 +104,15 @@ export function BuzzerPlayerView({ roomId, match, syncStatus, onConnectRoom, sou
             {teams.map((t) => {
               const selected = selectedTeamId === t.id;
               const tColor = getColor(t.color);
+              const locked = Array.isArray(lockedOutTeams) && lockedOutTeams.includes(t.id);
               return (
                 <button
                   key={t.id}
                   onClick={() => handleSelectTeam(t.id)}
-                  className={`px-4 py-2 rounded-xl text-xs font-black transition-all border shadow-sm ${selected ? `${tColor.badge} scale-105 ring-2 ring-amber-400 shadow-md` : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 opacity-70 hover:opacity-100"}`}
+                  className={`px-4 py-2 rounded-xl text-xs font-black transition-all border shadow-sm flex items-center gap-1 ${selected ? `${tColor.badge} scale-105 ring-2 ring-amber-400 shadow-md` : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 opacity-70 hover:opacity-100"}`}
                 >
-                  TIM {t.id} ({t.name})
+                  {locked && <Lock className="w-3 h-3 text-red-500 shrink-0" />}
+                  <span>TIM {t.id} ({t.name})</span>
                 </button>
               );
             })}
@@ -116,27 +120,46 @@ export function BuzzerPlayerView({ roomId, match, syncStatus, onConnectRoom, sou
         </div>
 
         <div className={`w-full p-4 rounded-2xl border-2 text-center shadow-md bg-gradient-to-br ${isLight ? colorInfo.bgLight : colorInfo.bgDark} ${isLight ? colorInfo.borderLight : colorInfo.borderDark}`}>
-          <span className={`${colorInfo.badge} text-xs px-3 py-1 rounded-full uppercase tracking-wider shadow-sm`}>ANDA ADALAH TIM {currentTeamObj.id}</span>
+          <div className="flex items-center justify-center gap-2">
+            <span className={`${colorInfo.badge} text-xs px-3 py-1 rounded-full uppercase tracking-wider shadow-sm`}>ANDA ADALAH TIM {currentTeamObj.id}</span>
+            {isLockedOut && <span className="bg-red-600 text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider animate-pulse">🔒 TERKUNCI SOAL INI</span>}
+          </div>
           <div className="text-xl md:text-2xl font-black mt-1">{currentTeamObj.name}</div>
           <div className="text-xs opacity-75 font-medium">{currentTeamObj.school || "-"}</div>
         </div>
 
         {/* Giant Tactile 3D Bel Button */}
         <div className="w-full flex flex-col items-center justify-center py-4">
-          <button
-            onClick={handleBuzzPress}
-            className="group relative w-64 h-64 md:w-72 md:h-72 rounded-full bg-gradient-to-b from-red-500 via-red-600 to-red-800 p-4 shadow-[0_20px_50px_rgba(220,38,38,0.5)] border-4 border-red-400 active:scale-95 active:shadow-inner transition-all flex flex-col items-center justify-center cursor-pointer select-none"
-          >
-            <div className="w-full h-full rounded-full bg-gradient-to-b from-rose-400 via-red-500 to-red-700 flex flex-col items-center justify-center p-6 border-4 border-rose-300/40 shadow-inner text-white text-center">
-              <Zap className="w-16 h-16 md:w-20 md:h-20 mb-2 drop-shadow-md group-hover:scale-110 transition-transform animate-bounce" />
-              <span className="text-3xl md:text-4xl font-black tracking-wider uppercase drop-shadow-md">TEKAN BEL!</span>
-              <span className="text-[11px] font-mono mt-1 opacity-90 font-bold bg-black/20 px-3 py-1 rounded-full border border-white/20">TEKAN SPASI / ENTER</span>
+          {isLockedOut ? (
+            <div className="relative w-64 h-64 md:w-72 md:h-72 rounded-full bg-slate-700/80 p-4 border-4 border-slate-600 flex flex-col items-center justify-center select-none shadow-inner text-center">
+              <div className="w-full h-full rounded-full bg-slate-800/90 flex flex-col items-center justify-center p-6 border-4 border-slate-700 text-slate-400 text-center">
+                <Lock className="w-16 h-16 md:w-20 md:h-20 mb-2 text-red-500 animate-pulse" />
+                <span className="text-2xl md:text-3xl font-black tracking-wider uppercase text-red-400">BEL TERKUNCI</span>
+                <span className="text-[11px] font-semibold mt-2 opacity-90 bg-red-950/60 text-red-200 px-3 py-1.5 rounded-xl border border-red-800/40">
+                  Sudah Menjawab Salah di Soal Ini
+                </span>
+              </div>
             </div>
-          </button>
+          ) : (
+            <button
+              onClick={handleBuzzPress}
+              className="group relative w-64 h-64 md:w-72 md:h-72 rounded-full bg-gradient-to-b from-red-500 via-red-600 to-red-800 p-4 shadow-[0_20px_50px_rgba(220,38,38,0.5)] border-4 border-red-400 active:scale-95 active:shadow-inner transition-all flex flex-col items-center justify-center cursor-pointer select-none"
+            >
+              <div className="w-full h-full rounded-full bg-gradient-to-b from-rose-400 via-red-500 to-red-700 flex flex-col items-center justify-center p-6 border-4 border-rose-300/40 shadow-inner text-white text-center">
+                <Zap className="w-16 h-16 md:w-20 md:h-20 mb-2 drop-shadow-md group-hover:scale-110 transition-transform animate-bounce" />
+                <span className="text-3xl md:text-4xl font-black tracking-wider uppercase drop-shadow-md">TEKAN BEL!</span>
+                <span className="text-[11px] font-mono mt-1 opacity-90 font-bold bg-black/20 px-3 py-1 rounded-full border border-white/20">TEKAN SPASI / ENTER</span>
+              </div>
+            </button>
+          )}
         </div>
 
         <div className="text-center opacity-70 text-xs font-medium max-w-xs">
-          💡 Tips: Anda dapat menekan layar bel ini, mengeklik mouse, atau menekan tombol <strong>SPACEBAR / ENTER</strong> di keyboard PC/Laptop Anda.
+          {isLockedOut ? (
+            <span className="text-red-500 dark:text-red-400 font-bold">⚠️ Bel Anda terkunci untuk nomor soal ini. Tunggu soal dilempar ke tim lain atau lanjut ke nomor soal berikutnya.</span>
+          ) : (
+            <>💡 Tips: Anda dapat menekan layar bel ini, mengeklik mouse, atau menekan tombol <strong>SPACEBAR / ENTER</strong> di keyboard PC/Laptop Anda.</>
+          )}
         </div>
       </div>
     </div>

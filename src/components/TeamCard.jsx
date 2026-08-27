@@ -1,7 +1,7 @@
 import React from "react";
 import { getColor } from "../constants.js";
 
-export function TeamCard({ team, active, gettingAnswer, theme, onSelect, compact }) {
+export function TeamCard({ team, active, gettingAnswer, isLockedOut, theme, onSelect, compact }) {
   const colorInfo = getColor(team.color || "blue");
   const isLight = theme === "light";
 
@@ -12,11 +12,18 @@ export function TeamCard({ team, active, gettingAnswer, theme, onSelect, compact
   return (
     <div
       onClick={onSelect}
-      className={`relative bg-gradient-to-br ${bgGradient} border-2 ${borderColor} rounded-2xl p-5 md:p-6 flex flex-col items-center text-center transition-all shadow-sm hover:shadow-md ${active ? `ring-4 ${colorInfo.ring} buzz-active-glow scale-[1.02]` : "hover:border-[#2C3592]"} ${onSelect ? "cursor-pointer" : ""}`}
+      className={`relative bg-gradient-to-br ${bgGradient} border-2 ${borderColor} rounded-2xl p-5 md:p-6 flex flex-col items-center text-center transition-all shadow-sm hover:shadow-md ${active ? `ring-4 ${colorInfo.ring} buzz-active-glow scale-[1.02]` : "hover:border-[#2C3592]"} ${onSelect ? "cursor-pointer" : ""} ${isLockedOut ? "opacity-75" : ""}`}
     >
-      <span className={`${colorInfo.badge} text-xs font-black px-3.5 py-1 rounded-full tracking-widest mb-3 uppercase shadow-sm`}>
-        TIM {team.id}
-      </span>
+      <div className="flex items-center gap-1.5 mb-3 flex-wrap justify-center">
+        <span className={`${colorInfo.badge} text-xs font-black px-3.5 py-1 rounded-full tracking-widest uppercase shadow-sm`}>
+          TIM {team.id}
+        </span>
+        {isLockedOut && (
+          <span className="bg-red-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+            ❌ TERKUNCI
+          </span>
+        )}
+      </div>
       <div className="text-lg md:text-2xl font-extrabold truncate w-full tracking-tight mb-1">{team.name || `Tim ${team.id}`}</div>
       <div className="text-xs md:text-sm opacity-75 mb-4 truncate w-full font-medium">{team.school || "-"}</div>
       <div className={`font-mono-num font-black tabular-nums ${compact ? "text-3xl md:text-4xl" : "text-5xl md:text-6xl"} ${textColor}`}>
@@ -30,3 +37,4 @@ export function TeamCard({ team, active, gettingAnswer, theme, onSelect, compact
     </div>
   );
 }
+

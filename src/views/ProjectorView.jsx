@@ -5,7 +5,7 @@ import { TimerBar } from "../components/TimerBar.jsx";
 import { TeamCard } from "../components/TeamCard.jsx";
 import { getMatchTeams, getWajibQnum } from "../utils/helpers.js";
 
-export function ProjectorView({ match, timerDisplay, timerDuration, timerRunning, statusMessage, onExit, theme }) {
+export function ProjectorView({ match, timerDisplay, timerDuration, timerRunning, statusMessage, lockedOutTeams = [], onExit, theme }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const isLight = theme === "light";
 
@@ -42,12 +42,14 @@ export function ProjectorView({ match, timerDisplay, timerDuration, timerRunning
     : "SOAL REBUTAN";
 
   const activeWajibTeam = statusMessage || teams[0]?.id || "A";
-  const qNum = isWajib
+  const rawQnum = isWajib
     ? getWajibQnum(match, activeWajibTeam)
     : isCadangan
     ? match.cadangan_qnum || 1
     : match.rebutan_qnum || 1;
 
+  const qMaxVal = isWajib ? (match.wajib_max_qnum || 5) : (match.rebutan_max_qnum || 10);
+  const qNum = isCadangan ? rawQnum : Math.min(rawQnum, qMaxVal);
   const qMaxDisplay = isWajib ? (match.wajib_max_qnum || 5) : isCadangan ? "BEBAS" : (match.rebutan_max_qnum || 10);
 
   let gridCols = "grid-cols-2";
@@ -86,16 +88,21 @@ export function ProjectorView({ match, timerDisplay, timerDuration, timerRunning
           {match?.match_name || "FINAL OLIMPIADE SAINS"}
         </h1>
         <div className={`font-black text-base md:text-2xl lg:text-3xl tracking-[0.25em] uppercase mt-1 ${isLight ? "text-amber-600" : "text-white/90"}`}>
-          UNIVERSITAS TERBUKA
+          {match?.sub_title || "UNIVERSITAS TERBUKA"}
         </div>
       </div>
 
       {/* Timer & Question Stage */}
       <div className="flex flex-col items-center justify-center mb-8 gap-2 z-10">
         <div className={`font-extrabold tracking-widest text-xl md:text-3xl ${isLight ? "text-[#2C3592]" : "text-amber-400"}`}>{roundLabel}</div>
-        <div className="font-bold text-base md:text-xl opacity-80 mb-2">
+        <div className="font-bold text-base md:text-xl opacity-80 mb-1">
           {isCadangan ? `PERTANYAAN CADANGAN KE-${qNum}` : (typeof qMaxDisplay === "number" && qNum > qMaxDisplay) ? `BABAK SELESAI (${qMaxDisplay}/${qMaxDisplay} SOAL)` : `PERTANYAAN KE-${qNum} DARI ${qMaxDisplay}`}
         </div>
+        {Array.isArray(lockedOutTeams) && lockedOutTeams.length > 0 && !isWajib && (
+          <div className="bg-amber-400 text-slate-950 font-black text-xs md:text-sm px-4 py-1 rounded-full uppercase tracking-wider shadow-md animate-pulse mb-1">
+            📢 SOAL DILEMPAR KEPADA TIM LAIN
+          </div>
+        )}
         <TimerBar seconds={timerDisplay} duration={timerDuration} running={timerRunning} size="xl" theme={theme} />
       </div>
 
@@ -107,6 +114,7 @@ export function ProjectorView({ match, timerDisplay, timerDuration, timerRunning
             team={t}
             theme={theme}
             gettingAnswer={statusMessage === t.id}
+            isLockedOut={Array.isArray(lockedOutTeams) && lockedOutTeams.includes(t.id)}
           />
         ))}
       </div>

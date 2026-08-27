@@ -139,6 +139,13 @@ export function HeaderNav({
           >
             <Radio className="w-3.5 h-3.5 text-red-500" /> <span className="hidden sm:inline whitespace-nowrap">Bel Peserta</span>
           </button>
+          <button
+            onClick={() => window.open(`/projector?room=${roomId || match?.room_code || ""}${match ? `&match=${match.id}` : ""}`, "_blank")}
+            className={`px-2 py-1.5 md:px-2.5 md:py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${isLight ? "text-slate-700 hover:bg-slate-100" : "text-slate-200 hover:bg-[#1E256C]"}`}
+            title="Buka Layar Proyektor di Tab Baru Browser"
+          >
+            <Tv className="w-3.5 h-3.5 text-amber-500" /> <span className="hidden sm:inline whitespace-nowrap">Proyektor</span>
+          </button>
         </nav>
 
         {/* Right Actions & Room Badge */}

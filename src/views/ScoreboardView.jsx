@@ -22,7 +22,7 @@ export function ScoreboardView(props) {
     startTimer, pauseTimer, resetTimer,
     soundOn, setSoundOn, sounds,
     onFinishMatch, theme, onConnectRoom, roomId, triggerBuzzRef,
-    onClearRoom, navigateTo
+    onClearRoom, navigateTo, lockedOutTeams = [], setLockedOutTeams
   } = props;
 
   if (!match) {
@@ -38,6 +38,15 @@ export function ScoreboardView(props) {
   const [correctTeamId, setCorrectTeamId] = useState(teams[0]?.id || "A");
   const [correctPoints, setCorrectPoints] = useState(100);
   const [correctReason, setCorrectReason] = useState("");
+
+  const [showEditTitleModal, setShowEditTitleModal] = useState(false);
+  const [editMatchName, setEditMatchName] = useState(match.match_name || "FINAL OLIMPIADE SAINS");
+  const [editSubTitle, setEditSubTitle] = useState(match.sub_title || "UNIVERSITAS TERBUKA");
+
+  function handleSaveMatchTitle() {
+    setMatch((prev) => (prev ? { ...prev, match_name: editMatchName, sub_title: editSubTitle } : prev));
+    setShowEditTitleModal(false);
+  }
 
   const isWajib = match.round_type === "wajib";
   const isCadangan = match.round_type === "cadangan";
@@ -85,6 +94,7 @@ export function ScoreboardView(props) {
       }
     }
     if (buzzerLocked || buzzedTeam) return;
+    if (lockedOutTeams.includes(teamId)) return;
     setBuzzedTeam(teamId);
     setBuzzerLocked(true);
     setAnsweringTeam(teamId);
@@ -115,8 +125,14 @@ export function ScoreboardView(props) {
     };
     setQuestionEvents((prev) => [...prev, ev]);
     setCurrentEventId(ev.id);
-    startTimer(timerDuration);
-  }, [isWajib, buzzerLocked, buzzedTeam, teams, sounds, roomId, match.id, match.round_type, match.rebutan_qnum, match.cadangan_qnum, match.rebutan_max_qnum, setQuestionEvents, startTimer, timerDuration, questionEvents]);
+    startTimer(timerDuration, true);
+  }, [isWajib, buzzerLocked, buzzedTeam, teams, sounds, roomId, match.id, match.round_type, match.rebutan_qnum, match.cadangan_qnum, match.rebutan_max_qnum, setQuestionEvents, startTimer, timerDuration, questionEvents, lockedOutTeams]);
+
+  useEffect(() => {
+    if (setLockedOutTeams) {
+      setLockedOutTeams([]);
+    }
+  }, [match?.id, match?.round_type, match?.rebutan_qnum, match?.cadangan_qnum, setLockedOutTeams]);
 
   useEffect(() => {
     if (triggerBuzzRef) {
@@ -161,8 +177,10 @@ export function ScoreboardView(props) {
       };
       setQuestionEvents((prev) => [...prev, ev]);
       setCurrentEventId(ev.id);
+      startTimer(timerDuration, true);
+    } else {
+      startTimer(timerDuration);
     }
-    startTimer(timerDuration);
   }
 
   const resolveWajib = useCallback((result) => {
@@ -252,6 +270,8 @@ export function ScoreboardView(props) {
 
     commitScore(targetTeam, pts, `${roundLabelStr} No. ${currentQnum} (${resultLabel(result)})`);
 
+    if (setLockedOutTeams) setLockedOutTeams([]);
+
     setMatch((prev) => {
       if (!prev) return prev;
       if (isCad) {
@@ -264,11 +284,73 @@ export function ScoreboardView(props) {
     setBuzzedTeam(null);
     setBuzzerLocked(false);
     resetTimer(timerDuration);
-  }, [pauseTimer, sounds, buzzedTeam, answeringTeam, currentEventId, setQuestionEvents, timerDuration, timerDisplay, commitScore, setMatch, resetTimer, match, questionEvents]);
+  }, [pauseTimer, sounds, buzzedTeam, answeringTeam, currentEventId, setQuestionEvents, timerDuration, timerDisplay, commitScore, setMatch, resetTimer, match, questionEvents, setLockedOutTeams]);
+
+  const resolveRebutanThrow = useCallback((mode = "salah") => {
+    const isCad = match.round_type === "cadangan";
+    pauseTimer();
+    sounds.wrong();
+
+    const targetTeam = buzzedTeam || answeringTeam;
+    if (!targetTeam) return;
+
+    const pts = mode === "tanpa_penalti" ? 0 : -50;
+    const roundLabelStr = isCad ? "Soal Cadangan" : "Soal Rebutan";
+    const currentQnum = isCad ? (match.cadangan_qnum || 1) : (match.rebutan_qnum || 1);
+    const noteSuffix = mode === "tanpa_penalti" ? "(Batal/Lempar)" : "(Salah - Dilempar)";
+
+    if (currentEventId) {
+      setQuestionEvents((prev) => prev.map((e) => e.id === currentEventId ? { ...e, result: mode === "tanpa_penalti" ? "dilempar" : "salah", answering_team: targetTeam, points: pts, ended_at: nowIso(), timer_used: timerDuration - timerDisplay } : e));
+    } else {
+      const ev = {
+        id: uid(),
+        match_id: match.id,
+        round_type: isCad ? "cadangan" : "rebutan",
+        question_number: currentQnum,
+        answering_team: targetTeam,
+        result: mode === "tanpa_penalti" ? "dilempar" : "salah",
+        points: pts,
+        started_at: nowIso(),
+        ended_at: nowIso(),
+        timer_used: 0,
+        note: `${roundLabelStr} ${noteSuffix}`,
+      };
+      setQuestionEvents((prev) => [...prev, ev]);
+    }
+
+    commitScore(targetTeam, pts, `${roundLabelStr} No. ${currentQnum} ${noteSuffix}`);
+
+    if (setLockedOutTeams) {
+      setLockedOutTeams((prev) => (prev.includes(targetTeam) ? prev : [...prev, targetTeam]));
+    }
+
+    setCurrentEventId(null);
+    setBuzzedTeam(null);
+    setBuzzerLocked(false);
+    resetTimer(timerDuration);
+  }, [pauseTimer, sounds, buzzedTeam, answeringTeam, currentEventId, setQuestionEvents, timerDuration, timerDisplay, commitScore, resetTimer, match, setLockedOutTeams]);
+
+  const advanceToNextRebutanQuestion = useCallback(() => {
+    pauseTimer();
+    if (setLockedOutTeams) setLockedOutTeams([]);
+    setMatch((prev) => {
+      if (!prev) return prev;
+      if (prev.round_type === "cadangan") {
+        return { ...prev, cadangan_qnum: (prev.cadangan_qnum || 1) + 1 };
+      }
+      const nextQ = (prev.rebutan_qnum || 1) + 1;
+      return { ...prev, round_type: "rebutan", status: "rebutan", rebutan_qnum: nextQ };
+    });
+    setCurrentEventId(null);
+    setBuzzedTeam(null);
+    setBuzzerLocked(false);
+    resetTimer(timerDuration);
+  }, [pauseTimer, setMatch, resetTimer, timerDuration, setLockedOutTeams]);
 
   const resolveRebutanTimeout = useCallback(() => {
     pauseTimer();
     sounds.wrong();
+    if (setLockedOutTeams) setLockedOutTeams([]);
     if (currentEventId) {
       setQuestionEvents((prev) => prev.map((e) => e.id === currentEventId ? { ...e, result: "waktu_habis", points: 0, ended_at: nowIso() } : e));
     }
@@ -284,7 +366,7 @@ export function ScoreboardView(props) {
     setBuzzedTeam(null);
     setBuzzerLocked(false);
     resetTimer(timerDuration);
-  }, [pauseTimer, sounds, currentEventId, setQuestionEvents, setMatch, resetTimer, timerDuration]);
+  }, [pauseTimer, sounds, currentEventId, setQuestionEvents, setMatch, resetTimer, timerDuration, setLockedOutTeams]);
 
   /* ---------------- KEYBOARD SHORTCUTS LISTENER ---------------- */
   useEffect(() => {
@@ -339,14 +421,17 @@ export function ScoreboardView(props) {
         } else if (key === "n" || e.code === "Backspace") {
           e.preventDefault();
           if (isWajib) resolveWajib("salah");
-          else resolveRebutan("salah");
+          else resolveRebutanThrow("salah");
+        } else if (key === "l") {
+          e.preventDefault();
+          if (!isWajib) resolveRebutanThrow("tanpa_penalti");
         }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isWajib, isWajibDoneForTeam, isRebutanDone, buzzedTeam, buzzerLocked, timerRunning, teams, answeringTeam, currentEventId, timerDuration, pauseTimer, startTimer, cancelBuzzer, triggerBuzz, resolveWajib, resolveRebutan]);
+  }, [isWajib, isWajibDoneForTeam, isRebutanDone, buzzedTeam, buzzerLocked, timerRunning, teams, answeringTeam, currentEventId, timerDuration, pauseTimer, startTimer, cancelBuzzer, triggerBuzz, resolveWajib, resolveRebutan, resolveRebutanThrow]);
 
   useEffect(() => {
     props.setTimeUpHandler(() => () => {
@@ -394,6 +479,13 @@ export function ScoreboardView(props) {
           >
             Layar Besar (Proyektor)
           </Btn>
+          <Btn tone="outline" size="sm" icon={Edit3} onClick={() => {
+            setEditMatchName(match.match_name || "FINAL OLIMPIADE SAINS");
+            setEditSubTitle(match.sub_title || "UNIVERSITAS TERBUKA");
+            setShowEditTitleModal(true);
+          }}>
+            Edit Judul Proyektor
+          </Btn>
           <Btn tone="outline" size="sm" icon={Edit3} onClick={() => { setCorrectTeamId(answeringTeam || teams[0]?.id || "A"); setShowCorrectionModal(true); }}>
             Koreksi Poin
           </Btn>
@@ -408,6 +500,22 @@ export function ScoreboardView(props) {
             Selesaikan Pertandingan
           </Btn>
         </div>
+      </div>
+
+      {/* Active Match Title Banner */}
+      <div className={`p-4 rounded-2xl border flex items-center justify-between gap-4 flex-wrap shadow-sm ${isLight ? "bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border-blue-200 text-[#2C3592]" : "bg-slate-800/80 border-slate-700 text-slate-100"}`}>
+        <div>
+          <div className="text-[10px] font-black uppercase tracking-wider opacity-70 mb-0.5">JUDUL & LOKASI PROYEKTOR (ROOM {roomId})</div>
+          <h2 className="text-base md:text-xl font-black tracking-tight uppercase">{match.match_name || "FINAL OLIMPIADE SAINS"}</h2>
+          <p className="text-xs font-bold opacity-80 uppercase tracking-widest mt-0.5">{match.sub_title || "UNIVERSITAS TERBUKA"}</p>
+        </div>
+        <Btn tone="amber" size="sm" icon={Edit3} onClick={() => {
+          setEditMatchName(match.match_name || "FINAL OLIMPIADE SAINS");
+          setEditSubTitle(match.sub_title || "UNIVERSITAS TERBUKA");
+          setShowEditTitleModal(true);
+        }}>
+          Ubah Judul Proyektor
+        </Btn>
       </div>
 
       {/* Round Switcher & Question Count Banner */}
@@ -520,6 +628,7 @@ export function ScoreboardView(props) {
             theme={theme}
             active={answeringTeam === t.id}
             gettingAnswer={buzzedTeam === t.id}
+            isLockedOut={lockedOutTeams.includes(t.id)}
             onSelect={() => setAnsweringTeam(t.id)}
           />
         ))}
@@ -554,7 +663,7 @@ export function ScoreboardView(props) {
               <div className="space-y-5">
                 <div>
                   <div className="text-sm font-black text-[#2C3592] dark:text-blue-400 uppercase tracking-wider mb-1">
-                    PENILAIAN SOAL WAJIB ({teamNameById(match, answeringTeam).toUpperCase()}) — SOAL KE-{getWajibQnum(match, answeringTeam)} DARI {wajibMax}
+                    PENILAIAN SOAL WAJIB ({teamNameById(match, answeringTeam).toUpperCase()}) — {isWajibDoneForTeam ? `SOAL SELESAI (${wajibMax}/${wajibMax})` : `SOAL KE-${Math.min(getWajibQnum(match, answeringTeam), wajibMax)} DARI ${wajibMax}`}
                   </div>
                   <p className="text-xs opacity-70 font-medium">Jalankan waktu di sebelah kiri, kemudian tentukan hasil jawaban tim.</p>
                 </div>
@@ -599,25 +708,57 @@ export function ScoreboardView(props) {
                     </p>
                   </div>
                 ) : !buzzedTeam ? (
-                  <div>
-                    <label className="block text-xs font-extrabold uppercase tracking-wider opacity-70 mb-3">
-                      PILIH TIM YANG MENEKAN BEL TERCEPAT:
-                    </label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {teams.map((t, idx) => {
-                        const colorInfo = getColor(t.color);
-                        const keyLabel = idx === 0 ? "1 / A" : idx === 1 ? "2 / B" : idx === 2 ? "3 / C" : idx === 3 ? "4 / D" : idx === 4 ? "5 / E" : idx === 5 ? "6 / F" : idx === 6 ? "7 / G" : "8 / H";
-                        return (
-                          <button
-                            key={t.id}
-                            onClick={() => triggerBuzz(t.id)}
-                            className={`p-3.5 rounded-xl font-black text-sm border ${colorInfo.badge} hover:scale-[1.02] transition-all shadow-sm flex items-center justify-between gap-2`}
-                          >
-                            <span className="flex items-center gap-1.5">🔔 BEL {t.name}</span>
-                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-black/10 dark:bg-white/20 font-mono font-bold uppercase">[{keyLabel}]</span>
-                          </button>
-                        );
-                      })}
+                  <div className="space-y-4">
+                    {lockedOutTeams.length > 0 && (
+                      <div className="p-3.5 bg-amber-500/15 border border-amber-500/30 rounded-xl space-y-2 text-xs">
+                        <div className="font-black text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                          📢 SOAL DILEMPAR KEPADA TIM LAIN!
+                        </div>
+                        <div className="opacity-90 font-medium">
+                          Tim yang sudah dikunci pada nomor ini: <strong className="font-bold">{lockedOutTeams.map((id) => teamNameById(match, id)).join(", ")}</strong>. Tim lain masih bisa menekan bel.
+                        </div>
+                        <div className="pt-1">
+                          <Btn tone="amber" size="sm" className="w-full text-xs font-black" onClick={advanceToNextRebutanQuestion}>
+                            ⏭️ LANJUT SOAL BERIKUTNYA / SOAL HANGUS
+                          </Btn>
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-xs font-extrabold uppercase tracking-wider opacity-70 mb-3">
+                        PILIH TIM YANG MENEKAN BEL TERCEPAT:
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {teams.map((t, idx) => {
+                          const colorInfo = getColor(t.color);
+                          const keyLabel = idx === 0 ? "1 / A" : idx === 1 ? "2 / B" : idx === 2 ? "3 / C" : idx === 3 ? "4 / D" : idx === 4 ? "5 / E" : idx === 5 ? "6 / F" : idx === 6 ? "7 / G" : "8 / H";
+                          const isLocked = lockedOutTeams.includes(t.id);
+                          if (isLocked) {
+                            return (
+                              <button
+                                key={t.id}
+                                disabled
+                                className="p-3.5 rounded-xl font-black text-xs border bg-slate-200 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 cursor-not-allowed flex items-center justify-between gap-2 opacity-60"
+                                title="Tim ini sudah menjawab salah pada nomor soal ini"
+                              >
+                                <span className="flex items-center gap-1.5">🔒 BEL {t.name} (TERKUNCI)</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-md bg-black/10 dark:bg-white/10 font-mono font-bold uppercase">[🔒]</span>
+                              </button>
+                            );
+                          }
+                          return (
+                            <button
+                              key={t.id}
+                              onClick={() => triggerBuzz(t.id)}
+                              className={`p-3.5 rounded-xl font-black text-sm border ${colorInfo.badge} hover:scale-[1.02] transition-all shadow-sm flex items-center justify-between gap-2`}
+                            >
+                              <span className="flex items-center gap-1.5">🔔 BEL {t.name}</span>
+                              <span className="text-[10px] px-2 py-0.5 rounded-md bg-black/10 dark:bg-white/20 font-mono font-bold uppercase">[{keyLabel}]</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -631,10 +772,18 @@ export function ScoreboardView(props) {
                     <Btn tone="emerald" size="lg" className="w-full" icon={CheckCircle2} onClick={() => resolveRebutan("benar")}>
                       BENAR (+150 POIN) <span className="text-xs opacity-75 font-mono ml-1">[Enter / Y]</span>
                     </Btn>
-                    <Btn tone="red" size="lg" className="w-full" icon={XCircle} onClick={() => resolveRebutan("salah")}>
-                      SALAH / PENALTI (-50 POIN) <span className="text-xs opacity-75 font-mono ml-1">[Backspace / N]</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                      <Btn tone="red" size="md" className="w-full" icon={XCircle} onClick={() => resolveRebutanThrow("salah")}>
+                        SALAH & LEMPAR (-50) <span className="text-xs opacity-75 font-mono ml-1">[N / Backspace]</span>
+                      </Btn>
+                      <Btn tone="amber" size="md" className="w-full" icon={XCircle} onClick={() => resolveRebutan("salah")}>
+                        SALAH & SELESAI (-50)
+                      </Btn>
+                    </div>
+                    <Btn tone="outline" size="sm" className="w-full text-xs" icon={RotateCcw} onClick={() => resolveRebutanThrow("tanpa_penalti")}>
+                      LEMPAR TANPA PENALTI (0 POIN) <span className="text-xs opacity-75 font-mono ml-1">[L]</span>
                     </Btn>
-                    <Btn tone="outline" size="md" className="w-full text-xs" icon={RotateCcw} onClick={cancelBuzzer}>
+                    <Btn tone="outline" size="sm" className="w-full text-xs opacity-75" icon={RotateCcw} onClick={cancelBuzzer}>
                       BATAL BEL / RESET (ESC)
                     </Btn>
                   </div>
@@ -686,6 +835,34 @@ export function ScoreboardView(props) {
             <div className="flex gap-3 pt-2">
               <Btn tone="outline" className="flex-1" onClick={() => setShowCorrectionModal(false)}>Batal</Btn>
               <Btn tone="amber" className="flex-1" icon={Check} onClick={handleManualScoreCorrection}>SIMPAN KOREKSI</Btn>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Edit Match Title Modal */}
+      {showEditTitleModal && (
+        <Modal title="Edit Info Match & Judul Proyektor" onClose={() => setShowEditTitleModal(false)}>
+          <div className="space-y-4">
+            <Field label="Judul Utama Proyektor / Pertandingan">
+              <input
+                className={inputCls}
+                value={editMatchName}
+                onChange={(e) => setEditMatchName(e.target.value)}
+                placeholder="misal: FINAL OLIMPIADE SAINS BIOLOGI"
+              />
+            </Field>
+            <Field label="Sub-Judul Instansi / Lokasi Proyektor">
+              <input
+                className={inputCls}
+                value={editSubTitle}
+                onChange={(e) => setEditSubTitle(e.target.value)}
+                placeholder="misal: UNIVERSITAS TERBUKA BANDUNG"
+              />
+            </Field>
+            <div className="flex gap-3 pt-2">
+              <Btn tone="outline" className="flex-1" onClick={() => setShowEditTitleModal(false)}>Batal</Btn>
+              <Btn tone="amber" className="flex-1" icon={Check} onClick={handleSaveMatchTitle}>SIMPAN JUDUL</Btn>
             </div>
           </div>
         </Modal>

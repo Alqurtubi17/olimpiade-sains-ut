@@ -132,6 +132,7 @@ export function App() {
   const [timerStartedAt, setTimerStartedAt] = useState(null);
   const [soundOn, setSoundOn] = useState(true);
   const [statusMessage, setStatusMessage] = useState(null);
+  const [lockedOutTeams, setLockedOutTeams] = useState([]);
 
   const [roomId, setRoomId] = useState(() => {
     const parsed = parseLocation();
@@ -154,21 +155,27 @@ export function App() {
   const triggerBuzzRef = useRef(null);
 
   /* ---------------- TIMER LOGIC ---------------- */
+  const lastSecondSoundRef = useRef(-1);
+
   useEffect(() => {
     let iv = null;
     if (timerRunning) {
-      iv = setInterval(() => {
+      const updateTimer = () => {
         if (timerStartedAt) {
           const elapsed = Math.floor((Date.now() - timerStartedAt) / 1000);
-          const remaining = Math.max(0, timerDuration - elapsed);
+          const remaining = Math.max(0, (timerDuration || 45) - elapsed);
           setTimerDisplay(remaining);
-          if (remaining <= 0) {
-            setTimerRunning(false);
-            setTimerStartedAt(null);
-            if (soundsRef.current) soundsRef.current.timeUp();
-            if (timeUpHandlerRef.current) timeUpHandlerRef.current()();
-          } else if (remaining <= 5 && soundsRef.current) {
-            soundsRef.current.tenLeft();
+
+          if (remaining !== lastSecondSoundRef.current) {
+            lastSecondSoundRef.current = remaining;
+            if (remaining <= 0) {
+              setTimerRunning(false);
+              setTimerStartedAt(null);
+              if (soundsRef.current) soundsRef.current.timeUp();
+              if (timeUpHandlerRef.current) timeUpHandlerRef.current()();
+            } else if (remaining <= 5 && soundsRef.current) {
+              soundsRef.current.tenLeft();
+            }
           }
         } else {
           setTimerDisplay((prev) => {
@@ -184,22 +191,47 @@ export function App() {
             return prev - 1;
           });
         }
-      }, 1000);
+      };
+
+      updateTimer();
+      iv = setInterval(updateTimer, 250);
+    } else {
+      lastSecondSoundRef.current = -1;
     }
     return () => {
       if (iv) clearInterval(iv);
     };
   }, [timerRunning, timerStartedAt, timerDuration]);
 
-  const startTimer = (d) => {
-    const dur = d || timerDuration || 45;
+  /* Tab focus / visibility change handler to prevent background tab timer freeze */
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && timerRunning && timerStartedAt) {
+        const elapsed = Math.floor((Date.now() - timerStartedAt) / 1000);
+        const remaining = Math.max(0, (timerDuration || 45) - elapsed);
+        setTimerDisplay(remaining);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [timerRunning, timerStartedAt, timerDuration]);
+
+  const startTimer = (d, forceReset = false) => {
     const now = Date.now();
     lastLocalUpdateRef.current = now;
+    const dur = typeof d === "number" && d > 0 ? d : (timerDuration || 45);
     setTimerDuration(dur);
-    setTimerDisplay(dur);
-    setTimerStartedAt(now);
+
+    let remaining = timerDisplay;
+    if (forceReset || typeof remaining !== "number" || remaining <= 0 || remaining > dur) {
+      remaining = dur;
+      setTimerDisplay(dur);
+    }
+
+    const elapsedMs = (dur - remaining) * 1000;
+    setTimerStartedAt(now - elapsedMs);
     setTimerRunning(true);
-    sounds.timerStart();
+    if (soundsRef.current) soundsRef.current.timerStart();
   };
   const pauseTimer = () => {
     lastLocalUpdateRef.current = Date.now();
@@ -322,9 +354,17 @@ export function App() {
         setScoreLog(data.match.score_log);
       }
       if (data.buzzerEvents) setBuzzerEvents(data.buzzerEvents);
+      if (Array.isArray(data.lockedOutTeams)) setLockedOutTeams(data.lockedOutTeams);
       if (typeof data.timerRunning === "boolean") setTimerRunning(data.timerRunning);
       if (typeof data.timerDuration === "number") setTimerDuration(data.timerDuration);
-      if (data.timerStartedAt !== undefined) setTimerStartedAt(data.timerStartedAt);
+      if (data.timerStartedAt !== undefined) {
+        setTimerStartedAt(data.timerStartedAt);
+        if (data.timerRunning && data.timerStartedAt) {
+          const elapsed = Math.floor((Date.now() - data.timerStartedAt) / 1000);
+          const remaining = Math.max(0, (data.timerDuration || 45) - elapsed);
+          setTimerDisplay(remaining);
+        }
+      }
       if (!data.timerRunning && typeof data.timerDisplay === "number") {
         setTimerDisplay(data.timerDisplay);
       }
@@ -393,18 +433,23 @@ export function App() {
       isRemoteSyncRef.current = false;
       return;
     }
+    // Only Operator view (dashboard / room) should broadcast state updates!
+    const currentView = viewState.view;
+    if (currentView !== "dashboard" && currentView !== "room") return;
     if (!match || !roomId) return;
+
     broadcastState(roomId, {
       match,
       questionEvents,
       scoreLog,
       buzzerEvents,
+      lockedOutTeams,
       timerRunning,
       timerDisplay,
       timerDuration,
       timerStartedAt,
     });
-  }, [match, questionEvents, scoreLog, buzzerEvents, timerRunning, timerDuration, timerStartedAt, roomId]);
+  }, [match, questionEvents, scoreLog, buzzerEvents, lockedOutTeams, timerRunning, timerDuration, timerStartedAt, roomId, viewState.view]);
 
   /* Auto load match by roomId if user navigates to /room?id=XYZ without match param */
   const loadedRoomMatchRef = useRef(null);
@@ -520,12 +565,16 @@ export function App() {
     if (form.match_name) {
       try { localStorage.setItem("app_event_title", form.match_name); } catch (e) { }
     }
+    if (form.sub_title) {
+      try { localStorage.setItem("app_sub_title", form.sub_title); } catch (e) { }
+    }
 
     const m = {
       id: uid(),
       room_code: newRoom,
       match_number: form.match_number || getNextMatchNumber(matches),
       match_name: form.match_name || localStorage.getItem("app_event_title") || "Final Olimpiade Sains",
+      sub_title: form.sub_title || localStorage.getItem("app_sub_title") || "UNIVERSITAS TERBUKA",
       date: form.date,
       teams: form.teams || [
         { id: "A", name: "Tim A", school: "UT Bandung", score: 0, color: "blue" },
@@ -719,6 +768,7 @@ export function App() {
         timerDuration={timerDuration}
         timerRunning={timerRunning}
         statusMessage={statusMessage}
+        lockedOutTeams={lockedOutTeams}
         onExit={() => navigateTo("/room", { id: roomId })}
         theme={theme}
       />
@@ -758,6 +808,7 @@ export function App() {
             onConnectRoom={connectToRoom}
             sounds={sounds}
             theme={theme}
+            lockedOutTeams={lockedOutTeams}
           />
         )}
 
@@ -781,6 +832,8 @@ export function App() {
             sounds={sounds}
             setTimeUpHandler={setTimeUpHandler}
             triggerBuzzRef={triggerBuzzRef}
+            lockedOutTeams={lockedOutTeams}
+            setLockedOutTeams={setLockedOutTeams}
             onOpenProjector={() => navigateTo("/projector", { room: roomId })}
             onOpenRecap={() => navigateTo("/recap", { id: match?.id })}
             onOpenRules={() => navigateTo("/rules")}

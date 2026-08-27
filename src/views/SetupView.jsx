@@ -23,6 +23,7 @@ export function SetupView({ matches = [], onStart, onCancel, showCancel, theme }
   const [teamCount, setTeamCount] = useState(2);
   const [form, setForm] = useState(() => ({
     match_name: (typeof window !== "undefined" && localStorage.getItem("app_event_title")) || "FINAL OLIMPIADE SAINS",
+    sub_title: (typeof window !== "undefined" && localStorage.getItem("app_sub_title")) || "UNIVERSITAS TERBUKA",
     match_number: getNextMatchNumber(matches),
     wajib_max_qnum: 5,
     rebutan_max_qnum: 10,
@@ -103,8 +104,11 @@ export function SetupView({ matches = [], onStart, onCancel, showCancel, theme }
         </div>
 
         <div className="grid md:grid-cols-2 gap-x-6 gap-y-2">
-          <Field label="Nama Pertandingan">
+          <Field label="Judul Utama Proyektor / Pertandingan">
             <input className={inputCls} value={form.match_name} onChange={handleFormChange("match_name")} placeholder="FINAL OLIMPIADE SAINS" />
+          </Field>
+          <Field label="Sub-Judul Instansi / Lokasi Proyektor">
+            <input className={inputCls} value={form.sub_title} onChange={handleFormChange("sub_title")} placeholder="UNIVERSITAS TERBUKA BANDUNG" />
           </Field>
           <Field label="Nomor Pertandingan">
             <input

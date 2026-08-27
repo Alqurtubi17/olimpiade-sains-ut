@@ -14,9 +14,12 @@ export function RecapView({ match, questionEvents, scoreLog, buzzerEvents, onBac
       <Btn tone="outline" icon={ArrowLeft} onClick={onBack}>Kembali ke Pertandingan</Btn>
 
       <div className="text-center flex flex-col items-center">
-        <div className="text-[#D9A100] dark:text-amber-400 font-black tracking-widest text-xs uppercase mb-2">
+        <div className="text-[#D9A100] dark:text-amber-400 font-black tracking-widest text-xs uppercase mb-1">
           {match?.match_name || "FINAL OLIMPIADE SAINS"}
         </div>
+        <p className="opacity-75 text-xs font-bold uppercase tracking-widest mb-2">
+          {match?.sub_title || "UNIVERSITAS TERBUKA"}
+        </p>
         <h1 className="text-3xl md:text-5xl font-black tracking-tight">Hasil Akhir Pertandingan</h1>
         <p className="opacity-75 text-sm mt-1 font-medium">Pertandingan No. {match.match_number} — {match.date}</p>
       </div>

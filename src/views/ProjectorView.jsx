@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { Tv, ArrowLeft } from "lucide-react";
+import { Tv, ArrowLeft, Zap } from "lucide-react";
 import { Btn, LogoUT } from "../components/UI.jsx";
 import { TimerBar } from "../components/TimerBar.jsx";
 import { TeamCard } from "../components/TeamCard.jsx";
-import { getMatchTeams, getWajibQnum } from "../utils/helpers.js";
+import { getMatchTeams, getWajibQnum, teamNameById } from "../utils/helpers.js";
 
-export function ProjectorView({ match, timerDisplay, timerDuration, timerRunning, statusMessage, lockedOutTeams = [], onExit, theme }) {
+export function ProjectorView({ match, timerDisplay, timerDuration, timerRunning, statusMessage, lockedOutTeams = [], buzzedTeam, onExit, theme }) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const isLight = theme === "light";
 
@@ -83,7 +83,7 @@ export function ProjectorView({ match, timerDisplay, timerDuration, timerRunning
       </div>
 
       {/* Header Banner */}
-      <div className="text-center pt-2 mb-6 z-10 flex flex-col items-center">
+      <div className="text-center pt-2 mb-4 z-10 flex flex-col items-center">
         <h1 className={`font-black text-3xl md:text-5xl lg:text-6xl tracking-wider uppercase drop-shadow-md ${isLight ? "text-[#2C3592]" : "text-[#FFE600]"}`}>
           {match?.match_name || "FINAL OLIMPIADE SAINS"}
         </h1>
@@ -92,8 +92,18 @@ export function ProjectorView({ match, timerDisplay, timerDuration, timerRunning
         </div>
       </div>
 
+      {/* Spotlight Banner when Buzzer is Pressed */}
+      {buzzedTeam && (
+        <div className="z-30 my-2 animate-bounce flex items-center justify-center">
+          <div className="bg-[#FFE600] text-[#2C3592] font-black text-xl md:text-3xl lg:text-4xl px-8 py-3.5 rounded-3xl shadow-[0_0_60px_rgba(255,230,0,0.95)] border-4 border-amber-300 flex items-center gap-3 tracking-wider uppercase">
+            <Zap className="w-8 h-8 text-red-600 animate-spin shrink-0" />
+            <span>🔔 {teamNameById(match, buzzedTeam).toUpperCase()} MENEKAN BEL!</span>
+          </div>
+        </div>
+      )}
+
       {/* Timer & Question Stage */}
-      <div className="flex flex-col items-center justify-center mb-8 gap-2 z-10">
+      <div className="flex flex-col items-center justify-center mb-6 gap-2 z-10">
         <div className={`font-extrabold tracking-widest text-xl md:text-3xl ${isLight ? "text-[#2C3592]" : "text-amber-400"}`}>{roundLabel}</div>
         <div className="font-bold text-base md:text-xl opacity-80 mb-1">
           {isCadangan ? `PERTANYAAN CADANGAN KE-${qNum}` : (typeof qMaxDisplay === "number" && qNum > qMaxDisplay) ? `BABAK SELESAI (${qMaxDisplay}/${qMaxDisplay} SOAL)` : `PERTANYAAN KE-${qNum} DARI ${qMaxDisplay}`}
@@ -108,15 +118,20 @@ export function ProjectorView({ match, timerDisplay, timerDuration, timerRunning
 
       {/* Team Cards Stage */}
       <div className={`grid ${gridCols} gap-6 flex-1 items-stretch max-w-7xl mx-auto w-full`}>
-        {teams.map((t) => (
-          <TeamCard
-            key={t.id}
-            team={t}
-            theme={theme}
-            gettingAnswer={statusMessage === t.id}
-            isLockedOut={Array.isArray(lockedOutTeams) && lockedOutTeams.includes(t.id)}
-          />
-        ))}
+        {teams.map((t) => {
+          const isBuzzed = buzzedTeam === t.id || statusMessage === t.id;
+          const isOtherBuzzed = buzzedTeam && buzzedTeam !== t.id;
+          return (
+            <TeamCard
+              key={t.id}
+              team={t}
+              theme={theme}
+              gettingAnswer={isBuzzed}
+              isDimmed={isOtherBuzzed}
+              isLockedOut={Array.isArray(lockedOutTeams) && lockedOutTeams.includes(t.id)}
+            />
+          );
+        })}
       </div>
     </div>
   );

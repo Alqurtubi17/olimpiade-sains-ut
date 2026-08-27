@@ -133,6 +133,7 @@ export function App() {
   const [soundOn, setSoundOn] = useState(true);
   const [statusMessage, setStatusMessage] = useState(null);
   const [lockedOutTeams, setLockedOutTeams] = useState([]);
+  const [buzzedTeam, setBuzzedTeam] = useState(null);
 
   const [roomId, setRoomId] = useState(() => {
     const parsed = parseLocation();
@@ -355,6 +356,7 @@ export function App() {
       }
       if (data.buzzerEvents) setBuzzerEvents(data.buzzerEvents);
       if (Array.isArray(data.lockedOutTeams)) setLockedOutTeams(data.lockedOutTeams);
+      if (data.buzzedTeam !== undefined) setBuzzedTeam(data.buzzedTeam);
       if (typeof data.timerRunning === "boolean") setTimerRunning(data.timerRunning);
       if (typeof data.timerDuration === "number") setTimerDuration(data.timerDuration);
       if (data.timerStartedAt !== undefined) {
@@ -444,12 +446,13 @@ export function App() {
       scoreLog,
       buzzerEvents,
       lockedOutTeams,
+      buzzedTeam,
       timerRunning,
       timerDisplay,
       timerDuration,
       timerStartedAt,
     });
-  }, [match, questionEvents, scoreLog, buzzerEvents, lockedOutTeams, timerRunning, timerDuration, timerStartedAt, roomId, viewState.view]);
+  }, [match, questionEvents, scoreLog, buzzerEvents, lockedOutTeams, buzzedTeam, timerRunning, timerDuration, timerStartedAt, roomId, viewState.view]);
 
   /* Auto load match by roomId if user navigates to /room?id=XYZ without match param */
   const loadedRoomMatchRef = useRef(null);
@@ -769,6 +772,7 @@ export function App() {
         timerRunning={timerRunning}
         statusMessage={statusMessage}
         lockedOutTeams={lockedOutTeams}
+        buzzedTeam={buzzedTeam}
         onExit={() => navigateTo("/room", { id: roomId })}
         theme={theme}
       />
@@ -834,6 +838,8 @@ export function App() {
             triggerBuzzRef={triggerBuzzRef}
             lockedOutTeams={lockedOutTeams}
             setLockedOutTeams={setLockedOutTeams}
+            buzzedTeam={buzzedTeam}
+            setBuzzedTeam={setBuzzedTeam}
             onOpenProjector={() => navigateTo("/projector", { room: roomId })}
             onOpenRecap={() => navigateTo("/recap", { id: match?.id })}
             onOpenRules={() => navigateTo("/rules")}

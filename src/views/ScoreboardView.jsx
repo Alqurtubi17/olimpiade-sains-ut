@@ -22,7 +22,8 @@ export function ScoreboardView(props) {
     startTimer, pauseTimer, resetTimer,
     soundOn, setSoundOn, sounds,
     onFinishMatch, theme, onConnectRoom, roomId, triggerBuzzRef,
-    onClearRoom, navigateTo, lockedOutTeams = [], setLockedOutTeams
+    onClearRoom, navigateTo, lockedOutTeams = [], setLockedOutTeams,
+    buzzedTeam: propBuzzedTeam, setBuzzedTeam: propSetBuzzedTeam
   } = props;
 
   if (!match) {
@@ -32,7 +33,9 @@ export function ScoreboardView(props) {
   const teams = getMatchTeams(match);
   const [answeringTeam, setAnsweringTeam] = useState(teams[0]?.id || "A");
   const [currentEventId, setCurrentEventId] = useState(null);
-  const [buzzedTeam, setBuzzedTeam] = useState(null);
+  const [localBuzzedTeam, setLocalBuzzedTeam] = useState(null);
+  const buzzedTeam = propBuzzedTeam !== undefined ? propBuzzedTeam : localBuzzedTeam;
+  const setBuzzedTeam = propSetBuzzedTeam || setLocalBuzzedTeam;
   const [buzzerLocked, setBuzzerLocked] = useState(false);
   const [showCorrectionModal, setShowCorrectionModal] = useState(false);
   const [correctTeamId, setCorrectTeamId] = useState(teams[0]?.id || "A");

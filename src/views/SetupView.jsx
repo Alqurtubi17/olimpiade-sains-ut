@@ -32,16 +32,30 @@ export function SetupView({ matches = [], onStart, onCancel, showCancel, theme }
     date: new Date().toISOString().slice(0, 10),
   }));
 
-  useEffect(() => {
-    setForm((prev) => ({
-      ...prev,
-      match_number: getNextMatchNumber(matches),
-    }));
-  }, [matches]);
+  const [isNumberUserEdited, setIsNumberUserEdited] = useState(false);
 
-  const isNumberUsed = (matches || []).some(
-    (m) => String(m.match_number).trim() === String(form.match_number).trim()
-  );
+  useEffect(() => {
+    if (!isNumberUserEdited) {
+      setForm((prev) => ({
+        ...prev,
+        match_number: getNextMatchNumber(matches),
+      }));
+    }
+  }, [matches, isNumberUserEdited]);
+
+  const isNumberUsed = (matches || []).some((m) => {
+    if (!m || m.match_number === undefined || m.match_number === null) return false;
+    const existingStr = String(m.match_number).trim();
+    const currentStr = String(form.match_number).trim();
+    if (!existingStr || !currentStr) return false;
+
+    const existingNum = parseInt(existingStr.replace(/\D/g, ""), 10);
+    const currentNum = parseInt(currentStr.replace(/\D/g, ""), 10);
+    if (!isNaN(existingNum) && !isNaN(currentNum)) {
+      return existingNum === currentNum;
+    }
+    return existingStr.toLowerCase() === currentStr.toLowerCase();
+  });
 
   const [teams, setTeams] = useState([
     { id: "A", name: "Tim A", school: "UT Bandung", color: "blue" },
@@ -78,7 +92,10 @@ export function SetupView({ matches = [], onStart, onCancel, showCancel, theme }
     });
   };
 
-  const handleFormChange = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const handleFormChange = (k) => (e) => {
+    if (k === "match_number") setIsNumberUserEdited(true);
+    setForm((f) => ({ ...f, [k]: e.target.value }));
+  };
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4 md:px-6">

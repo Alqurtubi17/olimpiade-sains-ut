@@ -13,13 +13,13 @@ export function TeamCard({ team, active, gettingAnswer, isLockedOut, isDimmed, t
   return (
     <div
       onClick={onSelect}
-      className={`relative bg-gradient-to-br ${bgGradient} border-2 ${borderColor} rounded-2xl p-5 md:p-6 flex flex-col items-center text-center transition-all shadow-sm ${
+      className={`relative bg-gradient-to-br ${bgGradient} border-2 ${borderColor} rounded-2xl p-5 md:p-6 flex flex-col items-center text-center transition-all duration-300 shadow-sm ${
         gettingAnswer
-          ? "ring-8 ring-amber-400 scale-[1.04] shadow-[0_0_50px_rgba(255,230,0,0.85)] z-30 animate-pulse"
+          ? "ring-4 ring-amber-400 scale-[1.03] shadow-2xl z-20"
           : active
-          ? `ring-4 ${colorInfo.ring} buzz-active-glow scale-[1.02]`
+          ? `ring-2 ${colorInfo.ring}`
           : "hover:border-[#2C3592]"
-      } ${onSelect ? "cursor-pointer" : ""} ${isLockedOut ? "opacity-60" : ""} ${isDimmed ? "opacity-40 scale-95 grayscale-[30%]" : ""}`}
+      } ${onSelect ? "cursor-pointer" : ""} ${isLockedOut ? "opacity-50" : ""} ${isDimmed ? "opacity-30 scale-95" : ""}`}
     >
       <div className="flex items-center gap-1.5 mb-3 flex-wrap justify-center">
         <span className={`${colorInfo.badge} text-xs font-black px-3.5 py-1 rounded-full tracking-widest uppercase shadow-sm`}>
@@ -27,7 +27,7 @@ export function TeamCard({ team, active, gettingAnswer, isLockedOut, isDimmed, t
         </span>
         {isLockedOut && (
           <span className="bg-red-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-            ❌ TERKUNCI
+            TERKUNCI
           </span>
         )}
       </div>
@@ -37,9 +37,8 @@ export function TeamCard({ team, active, gettingAnswer, isLockedOut, isDimmed, t
         {team.score || 0}
       </div>
       {gettingAnswer && (
-        <div className="mt-4 text-xs md:text-sm font-black bg-[#FFE600] text-[#2C3592] border-2 border-amber-300 px-4 py-2 rounded-xl animate-bounce shadow-xl tracking-wider flex items-center gap-1.5">
-          <Zap className="w-4 h-4 text-red-600 shrink-0" />
-          <span>🔔 MENEKAN BEL!</span>
+        <div className="mt-4 text-xs md:text-sm font-black bg-[#FFE600] text-[#2C3592] border border-amber-300 px-4 py-1.5 rounded-full shadow-md tracking-widest uppercase">
+          PENJAWAB AKTIF
         </div>
       )}
     </div>

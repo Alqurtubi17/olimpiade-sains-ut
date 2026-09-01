@@ -134,6 +134,11 @@ export function App() {
   const [statusMessage, setStatusMessage] = useState(null);
   const [lockedOutTeams, setLockedOutTeams] = useState([]);
   const [buzzedTeam, setBuzzedTeam] = useState(null);
+  const [answeringTeam, setAnsweringTeam] = useState("A");
+  const [showQuestion, setShowQuestion] = useState(false);
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [activeQuestionText, setActiveQuestionText] = useState("");
+  const [activeAnswerText, setActiveAnswerText] = useState("");
 
   const [roomId, setRoomId] = useState(() => {
     const parsed = parseLocation();
@@ -239,12 +244,21 @@ export function App() {
     setTimerRunning(false);
     setTimerStartedAt(null);
   };
-  const resetTimer = (d) => {
-    const dur = d || timerDuration || 45;
-    lastLocalUpdateRef.current = Date.now();
-    setTimerRunning(false);
-    setTimerStartedAt(null);
+  const resetTimer = (d, autoRestart = timerRunning) => {
+    const dur = typeof d === "number" && d > 0 ? d : (timerDuration || 45);
+    const now = Date.now();
+    lastLocalUpdateRef.current = now;
+    setTimerDuration(dur);
     setTimerDisplay(dur);
+
+    if (autoRestart) {
+      setTimerStartedAt(now);
+      setTimerRunning(true);
+      if (soundsRef.current) soundsRef.current.timerStart();
+    } else {
+      setTimerRunning(false);
+      setTimerStartedAt(null);
+    }
   };
 
   const setTimeUpHandler = useCallback((fn) => { timeUpHandlerRef.current = fn; }, []);
@@ -357,6 +371,11 @@ export function App() {
       if (data.buzzerEvents) setBuzzerEvents(data.buzzerEvents);
       if (Array.isArray(data.lockedOutTeams)) setLockedOutTeams(data.lockedOutTeams);
       if (data.buzzedTeam !== undefined) setBuzzedTeam(data.buzzedTeam);
+      if (data.answeringTeam !== undefined) setAnsweringTeam(data.answeringTeam);
+      if (typeof data.showQuestion === "boolean") setShowQuestion(data.showQuestion);
+      if (typeof data.showAnswer === "boolean") setShowAnswer(data.showAnswer);
+      if (data.activeQuestionText !== undefined) setActiveQuestionText(data.activeQuestionText);
+      if (data.activeAnswerText !== undefined) setActiveAnswerText(data.activeAnswerText);
       if (typeof data.timerRunning === "boolean") setTimerRunning(data.timerRunning);
       if (typeof data.timerDuration === "number") setTimerDuration(data.timerDuration);
       if (data.timerStartedAt !== undefined) {
@@ -447,12 +466,17 @@ export function App() {
       buzzerEvents,
       lockedOutTeams,
       buzzedTeam,
+      answeringTeam,
+      showQuestion,
+      showAnswer,
+      activeQuestionText,
+      activeAnswerText,
       timerRunning,
       timerDisplay,
       timerDuration,
       timerStartedAt,
     });
-  }, [match, questionEvents, scoreLog, buzzerEvents, lockedOutTeams, buzzedTeam, timerRunning, timerDuration, timerStartedAt, roomId, viewState.view]);
+  }, [match, questionEvents, scoreLog, buzzerEvents, lockedOutTeams, buzzedTeam, answeringTeam, showQuestion, showAnswer, activeQuestionText, activeAnswerText, timerRunning, timerDuration, timerStartedAt, roomId, viewState.view]);
 
   /* Auto load match by roomId if user navigates to /room?id=XYZ without match param */
   const loadedRoomMatchRef = useRef(null);
@@ -773,6 +797,11 @@ export function App() {
         statusMessage={statusMessage}
         lockedOutTeams={lockedOutTeams}
         buzzedTeam={buzzedTeam}
+        answeringTeam={answeringTeam}
+        showQuestion={showQuestion}
+        showAnswer={showAnswer}
+        activeQuestionText={activeQuestionText}
+        activeAnswerText={activeAnswerText}
         onExit={() => navigateTo("/room", { id: roomId })}
         theme={theme}
       />
@@ -840,6 +869,16 @@ export function App() {
             setLockedOutTeams={setLockedOutTeams}
             buzzedTeam={buzzedTeam}
             setBuzzedTeam={setBuzzedTeam}
+            answeringTeam={answeringTeam}
+            setAnsweringTeam={setAnsweringTeam}
+            showQuestion={showQuestion}
+            setShowQuestion={setShowQuestion}
+            showAnswer={showAnswer}
+            setShowAnswer={setShowAnswer}
+            activeQuestionText={activeQuestionText}
+            setActiveQuestionText={setActiveQuestionText}
+            activeAnswerText={activeAnswerText}
+            setActiveAnswerText={setActiveAnswerText}
             onOpenProjector={() => navigateTo("/projector", { room: roomId })}
             onOpenRecap={() => navigateTo("/recap", { id: match?.id })}
             onOpenRules={() => navigateTo("/rules")}

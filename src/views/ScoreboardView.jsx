@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Play, Pause, RotateCcw, Volume2, VolumeX, Trophy, CheckCircle2, XCircle,
-  Edit3, Check, Tv
+  Edit3, Check, Tv, Eye, EyeOff, Key, BookOpen
 } from "lucide-react";
 import { Btn, Panel, Modal, Field } from "../components/UI.jsx";
 import { TeamCard } from "../components/TeamCard.jsx";
@@ -14,6 +14,7 @@ import {
   teamNameById, resultLabel
 } from "../utils/helpers.js";
 import { broadcastBuzzer } from "../lib/sync-engine.js";
+import { QuestionBankModal } from "../components/QuestionBankModal.jsx";
 
 export function ScoreboardView(props) {
   const {
@@ -23,7 +24,9 @@ export function ScoreboardView(props) {
     soundOn, setSoundOn, sounds,
     onFinishMatch, theme, onConnectRoom, roomId, triggerBuzzRef,
     onClearRoom, navigateTo, lockedOutTeams = [], setLockedOutTeams,
-    buzzedTeam: propBuzzedTeam, setBuzzedTeam: propSetBuzzedTeam
+    buzzedTeam: propBuzzedTeam, setBuzzedTeam: propSetBuzzedTeam,
+    showQuestion, setShowQuestion, showAnswer, setShowAnswer,
+    activeQuestionText, setActiveQuestionText, activeAnswerText, setActiveAnswerText
   } = props;
 
   if (!match) {
@@ -31,7 +34,9 @@ export function ScoreboardView(props) {
   }
 
   const teams = getMatchTeams(match);
-  const [answeringTeam, setAnsweringTeam] = useState(teams[0]?.id || "A");
+  const [localAnsweringTeam, setLocalAnsweringTeam] = useState(teams[0]?.id || "A");
+  const answeringTeam = props.answeringTeam || localAnsweringTeam;
+  const setAnsweringTeam = props.setAnsweringTeam || setLocalAnsweringTeam;
   const [currentEventId, setCurrentEventId] = useState(null);
   const [localBuzzedTeam, setLocalBuzzedTeam] = useState(null);
   const buzzedTeam = propBuzzedTeam !== undefined ? propBuzzedTeam : localBuzzedTeam;
@@ -45,17 +50,44 @@ export function ScoreboardView(props) {
   const [showEditTitleModal, setShowEditTitleModal] = useState(false);
   const [editMatchName, setEditMatchName] = useState(match.match_name || "FINAL OLIMPIADE SAINS");
   const [editSubTitle, setEditSubTitle] = useState(match.sub_title || "UNIVERSITAS TERBUKA");
-
-  function handleSaveMatchTitle() {
-    setMatch((prev) => (prev ? { ...prev, match_name: editMatchName, sub_title: editSubTitle } : prev));
-    setShowEditTitleModal(false);
-  }
+  const [showBankModal, setShowBankModal] = useState(false);
 
   const isWajib = match.round_type === "wajib";
   const isCadangan = match.round_type === "cadangan";
   const isRebutan = match.round_type === "rebutan" || (!isWajib && !isCadangan);
   const matchPaused = match.status === "paused";
   const isLight = theme === "light";
+
+  // Calculate current qnum & auto-set activeQuestionText from match.questions
+  const currentQnum = isWajib
+    ? getWajibQnum(match, answeringTeam)
+    : isCadangan
+    ? match.cadangan_qnum || 1
+    : match.rebutan_qnum || 1;
+
+  useEffect(() => {
+    let qData = null;
+    if (isWajib) {
+      qData = match?.questions?.wajib?.[answeringTeam]?.[currentQnum - 1];
+    } else if (isCadangan) {
+      qData = match?.questions?.cadangan?.[currentQnum - 1];
+    } else {
+      qData = match?.questions?.rebutan?.[currentQnum - 1];
+    }
+
+    if (qData && qData.question) {
+      setActiveQuestionText(qData.question);
+      setActiveAnswerText(qData.answer || "");
+    } else {
+      setActiveQuestionText("");
+      setActiveAnswerText("");
+    }
+  }, [match?.questions, match?.round_type, answeringTeam, currentQnum, isWajib, isCadangan, setActiveQuestionText, setActiveAnswerText]);
+
+  function handleSaveMatchTitle() {
+    setMatch((prev) => (prev ? { ...prev, match_name: editMatchName, sub_title: editSubTitle } : prev));
+    setShowEditTitleModal(false);
+  }
 
   const maxScore = teams.length > 0 ? Math.max(...teams.map((t) => t.score || 0)) : 0;
   const topTeams = teams.filter((t) => (t.score || 0) === maxScore);
@@ -395,6 +427,12 @@ export function ScoreboardView(props) {
       }
 
       if (!isWajib && !buzzedTeam && !buzzerLocked && !isRebutanDone) {
+        if (key === "s") {
+          e.preventDefault();
+          advanceToNextRebutanQuestion();
+          return;
+        }
+
         const keyToTeamIdx = {
           a: 0, 1: 0,
           b: 1, 2: 1,
@@ -481,6 +519,18 @@ export function ScoreboardView(props) {
             onClick={() => window.open(`/projector?room=${roomId || match?.room_code || ""}&match=${match.id}`, "_blank")}
           >
             Layar Besar (Proyektor)
+          </Btn>
+          <Btn
+            tone={showQuestion ? "emerald" : "outline"}
+            size="sm"
+            icon={showQuestion ? EyeOff : Eye}
+            className={showQuestion ? "animate-pulse" : ""}
+            onClick={() => setShowQuestion((prev) => !prev)}
+          >
+            {showQuestion ? "Soal Tayang" : "Tampilkan Soal"}
+          </Btn>
+          <Btn tone="outline" size="sm" icon={BookOpen} onClick={() => setShowBankModal(true)}>
+            Bank Soal
           </Btn>
           <Btn tone="outline" size="sm" icon={Edit3} onClick={() => {
             setEditMatchName(match.match_name || "FINAL OLIMPIADE SAINS");
@@ -668,7 +718,35 @@ export function ScoreboardView(props) {
                   <div className="text-sm font-black text-[#2C3592] dark:text-blue-400 uppercase tracking-wider mb-1">
                     PENILAIAN SOAL WAJIB ({teamNameById(match, answeringTeam).toUpperCase()}) — {isWajibDoneForTeam ? `SOAL SELESAI (${wajibMax}/${wajibMax})` : `SOAL KE-${Math.min(getWajibQnum(match, answeringTeam), wajibMax)} DARI ${wajibMax}`}
                   </div>
-                  <p className="text-xs opacity-70 font-medium">Jalankan waktu di sebelah kiri, kemudian tentukan hasil jawaban tim.</p>
+                  {activeQuestionText ? (
+                    <div className="text-xs font-medium opacity-90 flex items-center justify-between gap-2 mt-1.5 p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="font-bold text-[#2C3592] dark:text-amber-400 shrink-0">📜 Soal:</span>
+                        <span className="truncate italic">"{activeQuestionText}"</span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => setShowQuestion((prev) => !prev)}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all flex items-center gap-1 ${
+                            showQuestion
+                              ? "bg-emerald-600 text-white shadow-sm animate-pulse"
+                              : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300"
+                          }`}
+                        >
+                          {showQuestion ? "🙈 SEMBUNYIKAN SOAL" : "👁️ TAMPILKAN SOAL"}
+                        </button>
+                        <button
+                          onClick={() => setShowBankModal(true)}
+                          className="px-2 py-1 rounded-lg text-[10px] font-black bg-blue-50 dark:bg-slate-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100"
+                          title="Edit Soal"
+                        >
+                          ✏️ Edit
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs opacity-70 font-medium">Jalankan waktu di sebelah kiri, kemudian tentukan hasil jawaban tim.</p>
+                  )}
                 </div>
 
                 {isWajibDoneForTeam ? (
@@ -713,25 +791,25 @@ export function ScoreboardView(props) {
                 ) : !buzzedTeam ? (
                   <div className="space-y-4">
                     {lockedOutTeams.length > 0 && (
-                      <div className="p-3.5 bg-amber-500/15 border border-amber-500/30 rounded-xl space-y-2 text-xs">
+                      <div className="p-3.5 bg-amber-500/15 border border-amber-500/30 rounded-xl space-y-1.5 text-xs">
                         <div className="font-black text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
                           📢 SOAL DILEMPAR KEPADA TIM LAIN!
                         </div>
                         <div className="opacity-90 font-medium">
                           Tim yang sudah dikunci pada nomor ini: <strong className="font-bold">{lockedOutTeams.map((id) => teamNameById(match, id)).join(", ")}</strong>. Tim lain masih bisa menekan bel.
                         </div>
-                        <div className="pt-1">
-                          <Btn tone="amber" size="sm" className="w-full text-xs font-black" onClick={advanceToNextRebutanQuestion}>
-                            ⏭️ LANJUT SOAL BERIKUTNYA / SOAL HANGUS
-                          </Btn>
-                        </div>
                       </div>
                     )}
 
                     <div>
-                      <label className="block text-xs font-extrabold uppercase tracking-wider opacity-70 mb-3">
-                        PILIH TIM YANG MENEKAN BEL TERCEPAT:
-                      </label>
+                      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                        <label className="text-xs font-extrabold uppercase tracking-wider opacity-70">
+                          PILIH TIM YANG MENEKAN BEL TERCEPAT:
+                        </label>
+                        <Btn tone="amber" size="sm" className="text-xs font-black" icon={RotateCcw} onClick={advanceToNextRebutanQuestion}>
+                          ⏭️ LANJUT SOAL BERIKUTNYA (SOAL HANGUS) <span className="text-[10px] opacity-75 font-mono ml-1">[S]</span>
+                        </Btn>
+                      </div>
                       <div className="grid grid-cols-2 gap-3">
                         {teams.map((t, idx) => {
                           const colorInfo = getColor(t.color);
@@ -869,6 +947,14 @@ export function ScoreboardView(props) {
             </div>
           </div>
         </Modal>
+      )}
+      {/* Question Bank Modal */}
+      {showBankModal && (
+        <QuestionBankModal
+          match={match}
+          setMatch={setMatch}
+          onClose={() => setShowBankModal(false)}
+        />
       )}
     </div>
   );

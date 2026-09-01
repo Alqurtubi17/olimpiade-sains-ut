@@ -5,7 +5,22 @@ import { TimerBar } from "../components/TimerBar.jsx";
 import { TeamCard } from "../components/TeamCard.jsx";
 import { getMatchTeams, getWajibQnum, teamNameById } from "../utils/helpers.js";
 
-export function ProjectorView({ match, timerDisplay, timerDuration, timerRunning, statusMessage, lockedOutTeams = [], buzzedTeam, onExit, theme }) {
+export function ProjectorView({
+  match,
+  timerDisplay,
+  timerDuration,
+  timerRunning,
+  statusMessage,
+  lockedOutTeams = [],
+  buzzedTeam,
+  answeringTeam = "A",
+  showQuestion,
+  showAnswer,
+  activeQuestionText,
+  activeAnswerText,
+  onExit,
+  theme,
+}) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const isLight = theme === "light";
 
@@ -35,13 +50,15 @@ export function ProjectorView({ match, timerDisplay, timerDuration, timerRunning
   const teams = getMatchTeams(match);
   const isWajib = match.round_type === "wajib";
   const isCadangan = match.round_type === "cadangan";
+  const activeWajibTeam = answeringTeam || statusMessage || teams[0]?.id || "A";
+  const activeWajibTeamName = teamNameById(match, activeWajibTeam).toUpperCase();
+
   const roundLabel = isWajib
-    ? "SOAL WAJIB"
+    ? `SOAL WAJIB — ${activeWajibTeamName}`
     : isCadangan
     ? "SOAL CADANGAN (PENENTUAN PEMENANG)"
     : "SOAL REBUTAN";
 
-  const activeWajibTeam = statusMessage || teams[0]?.id || "A";
   const rawQnum = isWajib
     ? getWajibQnum(match, activeWajibTeam)
     : isCadangan
@@ -92,29 +109,31 @@ export function ProjectorView({ match, timerDisplay, timerDuration, timerRunning
         </div>
       </div>
 
-      {/* Spotlight Banner when Buzzer is Pressed */}
-      {buzzedTeam && (
-        <div className="z-30 my-2 animate-bounce flex items-center justify-center">
-          <div className="bg-[#FFE600] text-[#2C3592] font-black text-xl md:text-3xl lg:text-4xl px-8 py-3.5 rounded-3xl shadow-[0_0_60px_rgba(255,230,0,0.95)] border-4 border-amber-300 flex items-center gap-3 tracking-wider uppercase">
-            <Zap className="w-8 h-8 text-red-600 animate-spin shrink-0" />
-            <span>🔔 {teamNameById(match, buzzedTeam).toUpperCase()} MENEKAN BEL!</span>
-          </div>
-        </div>
-      )}
-
       {/* Timer & Question Stage */}
-      <div className="flex flex-col items-center justify-center mb-6 gap-2 z-10">
+      <div className="flex flex-col items-center justify-center mb-4 gap-2 z-10">
         <div className={`font-extrabold tracking-widest text-xl md:text-3xl ${isLight ? "text-[#2C3592]" : "text-amber-400"}`}>{roundLabel}</div>
         <div className="font-bold text-base md:text-xl opacity-80 mb-1">
           {isCadangan ? `PERTANYAAN CADANGAN KE-${qNum}` : (typeof qMaxDisplay === "number" && qNum > qMaxDisplay) ? `BABAK SELESAI (${qMaxDisplay}/${qMaxDisplay} SOAL)` : `PERTANYAAN KE-${qNum} DARI ${qMaxDisplay}`}
         </div>
         {Array.isArray(lockedOutTeams) && lockedOutTeams.length > 0 && !isWajib && (
-          <div className="bg-amber-400 text-slate-950 font-black text-xs md:text-sm px-4 py-1 rounded-full uppercase tracking-wider shadow-md animate-pulse mb-1">
-            📢 SOAL DILEMPAR KEPADA TIM LAIN
+          <div className="bg-amber-400 text-slate-950 font-black text-xs md:text-sm px-4 py-1 rounded-full uppercase tracking-wider shadow-md mb-1">
+            SOAL DILEMPAR KEPADA TIM LAIN
           </div>
         )}
         <TimerBar seconds={timerDisplay} duration={timerDuration} running={timerRunning} size="xl" theme={theme} />
       </div>
+
+      {/* Question Text Box on Projector */}
+      {showQuestion && activeQuestionText && (
+        <div className="w-full max-w-5xl mx-auto my-3 p-6 md:p-8 rounded-3xl bg-white/95 dark:bg-slate-800/95 border-2 border-[#2C3592] dark:border-amber-400 shadow-2xl backdrop-blur-md text-center z-20 transition-all">
+          <div className="text-xs font-black uppercase tracking-widest text-[#2C3592] dark:text-amber-400 mb-2">
+            SOAL PERTANYAAN
+          </div>
+          <div className="text-xl md:text-3xl lg:text-4xl font-black leading-relaxed tracking-tight text-slate-900 dark:text-white">
+            "{activeQuestionText}"
+          </div>
+        </div>
+      )}
 
       {/* Team Cards Stage */}
       <div className={`grid ${gridCols} gap-6 flex-1 items-stretch max-w-7xl mx-auto w-full`}>

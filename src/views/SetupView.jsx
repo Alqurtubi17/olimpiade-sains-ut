@@ -168,10 +168,7 @@ export function SetupView({ matches = [], onStart, onCancel, showCancel, theme }
               const bgCls = isLight ? colorInfo.bgLight : colorInfo.bgDark;
               return (
                 <div key={t.id} className={`border ${borderCls} bg-gradient-to-br ${bgCls} rounded-2xl p-5 shadow-sm space-y-3`}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`${colorInfo.badge} text-xs font-black px-3.5 py-1 rounded-full uppercase`}>
-                      TIM {t.id}
-                    </span>
+                  <div className="flex items-center justify-end mb-1">
                     <select
                       value={t.color}
                       onChange={(e) => updateTeamField(i, "color", e.target.value)}
@@ -182,10 +179,10 @@ export function SetupView({ matches = [], onStart, onCancel, showCancel, theme }
                       ))}
                     </select>
                   </div>
-                  <Field label={`Nama Tim ${t.id}`}>
-                    <input className={inputCls} value={t.name} onChange={(e) => updateTeamField(i, "name", e.target.value)} placeholder={`Nama Tim ${t.id}`} />
+                  <Field label="Nama Tim">
+                    <input className={inputCls} value={t.name} onChange={(e) => updateTeamField(i, "name", e.target.value)} placeholder={`misal: Tim ${t.id}`} />
                   </Field>
-                  <Field label={`Instansi Tim ${t.id}`}>
+                  <Field label="Instansi">
                     <input className={inputCls} value={t.school} onChange={(e) => updateTeamField(i, "school", e.target.value)} placeholder={i === 0 ? "misal: UT Bandung" : i === 1 ? "misal: UT Jakarta" : `misal: UT ${t.id}`} />
                   </Field>
                 </div>

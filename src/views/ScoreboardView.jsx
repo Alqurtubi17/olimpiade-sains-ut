@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Play, Pause, RotateCcw, Volume2, VolumeX, Trophy, CheckCircle2, XCircle,
-  Edit3, Check, Tv, Eye, EyeOff, Key, BookOpen
+  Edit3, Check, Tv, Eye, EyeOff, Key, BookOpen, SkipForward
 } from "lucide-react";
 import { Btn, Panel, Modal, Field } from "../components/UI.jsx";
 import { TeamCard } from "../components/TeamCard.jsx";
@@ -806,8 +806,8 @@ export function ScoreboardView(props) {
                         <label className="text-xs font-extrabold uppercase tracking-wider opacity-70">
                           PILIH TIM YANG MENEKAN BEL TERCEPAT:
                         </label>
-                        <Btn tone="amber" size="sm" className="text-xs font-black" icon={RotateCcw} onClick={advanceToNextRebutanQuestion}>
-                          ⏭️ LANJUT SOAL BERIKUTNYA (SOAL HANGUS) <span className="text-[10px] opacity-75 font-mono ml-1">[S]</span>
+                        <Btn tone="amber" size="sm" className="text-xs font-black" icon={SkipForward} onClick={advanceToNextRebutanQuestion}>
+                          Lanjut Soal (Soal Hangus) <span className="text-[10px] opacity-75 font-mono ml-1">[S]</span>
                         </Btn>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
